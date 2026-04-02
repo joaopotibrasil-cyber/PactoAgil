@@ -113,6 +113,7 @@ export function Features() {
                 src="/step-01.png" 
                 alt="Background" 
                 fill 
+                sizes="33vw"
                 className="object-cover scale-110 group-hover:scale-100 transition-transform duration-1000" 
               />
             </div>

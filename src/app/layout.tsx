@@ -24,10 +24,14 @@ export const metadata: Metadata = {
   description:
     'Micro-SaaS para sindicatos e escritórios trabalhistas: análise, criação e gestão de ACT e CCT com fluxo inteligente.',
   icons: {
-    icon: '/logo-pacto-agil-new.png?v=2',
-    shortcut: '/logo-pacto-agil-new.png?v=2',
-    apple: '/logo-pacto-agil-new.png?v=2',
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/logo-pacto-agil-new.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/logo-pacto-agil-new.png',
+    apple: '/logo-pacto-agil-new.png',
   },
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({

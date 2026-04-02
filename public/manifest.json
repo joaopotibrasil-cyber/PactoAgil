@@ -1,0 +1,21 @@
+{
+  "name": "Pacto Ágil",
+  "short_name": "Pacto Ágil",
+  "description": "Gestão de negociações coletivas com inteligência artificial.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020611",
+  "theme_color": "#3884ff",
+  "icons": [
+    {
+      "src": "/logo-pacto-agil-new.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-pacto-agil-new.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
