@@ -1,65 +1,129 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ArrowRight, ShieldCheck } from "lucide-react";
+import { Features } from "@/components/home/Features";
+import { Philosophy } from "@/components/home/Philosophy";
+import { Protocol } from "@/components/home/Protocol";
+import { Pricing } from "@/components/home/Pricing";
+import { Footer } from "@/components/home/Footer";
+import { BrandLogo } from "@/components/ui/BrandLogo";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function Home() {
+  const heroRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".hero-in",
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, stagger: 0.1, duration: 1.2, ease: "power3.out", delay: 0.2 }
+      );
+
+      ScrollTrigger.create({
+        trigger: heroRef.current,
+        start: "bottom top+=120",
+        end: "bottom top+=20",
+        onToggle: (self) => {
+          if (!navRef.current) return;
+          navRef.current.classList.toggle("glass-panel", self.isActive);
+        },
+      });
+    });
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="relative text-foreground selection:bg-accent selection:text-accent-foreground">
+      <nav
+        ref={navRef}
+        className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-[min(1120px,92%)] rounded-full px-5 py-3 border border-transparent transition-all duration-300 flex items-center justify-between group"
+      >
+        <BrandLogo href="/" compact className="shrink-0 group-[.glass-panel]:brightness-100 brightness-110" />
+        <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide">
+          <a href="#features" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Funcionalidades</a>
+          <a href="#manifesto" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Manifesto</a>
+          <a href="#protocol" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Protocolo</a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+        <div className="flex items-center gap-3">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/login"
+            className="magnetic text-sm font-semibold text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 px-4 py-2 hidden sm:block"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
+            Acesso Cliente
           </a>
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#pricing"
+            className="magnetic hover-lift inline-flex items-center gap-2 rounded-full bg-primary text-white px-6 py-2.5 font-bold text-sm neo-ring"
           >
-            Documentation
+            Assinar
           </a>
         </div>
-      </main>
-    </div>
+      </nav>
+
+      <section
+        ref={heroRef}
+        className="relative min-h-[100dvh] overflow-hidden flex items-end justify-start pb-8"
+        style={{
+          backgroundImage:
+            "linear-gradient(to top, var(--background) 0%, color-mix(in srgb, var(--primary) 60%, transparent) 40%, transparent 100%), url('/hero-bg.png')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed"
+        }}
+      >
+        <div className="absolute inset-0 bg-slate-950/40 mix-blend-multiply pointer-events-none" />
+
+        <div className="relative z-10 mx-auto w-[min(1240px,92%)] pb-12 md:pb-20 lg:pb-24">
+          <div className="max-w-4xl space-y-8">
+            <div className="hero-in inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.26em] text-cyan-400 font-semibold px-4 py-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 backdrop-blur-md">
+              <ShieldCheck className="w-4 h-4" />
+              Inteligência Artificial Aplicada
+            </div>
+            
+            <h1 className="hero-in text-5xl md:text-6xl lg:text-7xl leading-[1.05] font-bold tracking-tight text-white drop-shadow-sm">
+              A gestão coletiva sindical atinge a
+              <span className="font-serif italic font-normal text-6xl md:text-8xl lg:text-[140px] leading-[0.8] text-primary block mt-4 lg:-ml-2 mix-blend-screen drop-shadow-2xl">
+                velocidade real.
+              </span>
+            </h1>
+            
+            <p className="hero-in max-w-2xl text-lg md:text-xl text-slate-200 opacity-90 font-medium leading-relaxed drop-shadow-sm">
+              O Pacto Ágil centraliza a análise e criação de ACTs e CCTs com fluxos inteligentes baseados em jurisprudência. Uma plataforma construída para sindicatos de classe mundial.
+            </p>
+            
+            <div className="hero-in pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <a
+                href="/login"
+                className="magnetic hover-lift inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 font-bold text-base w-full sm:w-auto neo-ring"
+              >
+                Inicie uma Negociação
+                <ArrowRight className="w-5 h-5" />
+              </a>
+              <a
+                href="#protocol"
+                className="hover-lift inline-flex items-center justify-center gap-2 rounded-full border border-border-soft px-8 py-4 font-semibold text-base w-full sm:w-auto bg-surface/30 backdrop-blur-sm"
+              >
+                Como funciona
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="relative z-20 bg-background pt-10">
+        <Features />
+        <Philosophy />
+        <Protocol />
+        <Pricing />
+        <Footer />
+      </div>
+    </main>
   );
 }

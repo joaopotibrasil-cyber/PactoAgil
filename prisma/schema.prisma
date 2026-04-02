@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Empresa {
+  id                  String               @id @default(uuid())
+  nome                String
+  cnpj                String?              @unique
+  slug                String?              @unique
+  funcionalidade      String?
+  criadoEm            DateTime             @default(now())
+  atualizadoEm        DateTime             @updatedAt
+  assinatura          Assinatura?
+  historicosPagamento HistoricoPagamento[]
+  negociacoes         Negociacao[]
+  usuarios            Perfil[]
+  sistemasToken       SistemaToken[]
+
+  @@index([cnpj])
+  @@index([slug])
+  @@index([nome])
+}
+
+model Perfil {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  email        String   @unique
+  nomeCompleto String?
+  avatarUrl    String?
+  role         String   @default("ADMIN")
+  empresaId    String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  empresa      Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([email])
+  @@index([empresaId])
+  @@index([role])
+}
+
+model Assinatura {
+  id                   String    @id @default(uuid())
+  empresaId            String    @unique
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  tipoPlano            String
+  status               String
+  fimPeriodoAtual      DateTime?
+  criadoEm             DateTime  @default(now())
+  atualizadoEm         DateTime  @updatedAt
+  empresa              Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@index([tipoPlano])
+  @@index([status])
+  @@index([fimPeriodoAtual])
+}
+
+model Negociacao {
+  id           String   @id @default(uuid())
+  empresaId    String
+  nomeEmpresa  String
+  cnpjAlvo     String?
+  dataBase     DateTime
+  status       String
+  instrumento  String
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+  empresa      Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@index([dataBase])
+  @@index([status])
+  @@index([instrumento])
+  @@index([criadoEm])
+}
+
+model HistoricoPagamento {
+  id              String    @id @default(uuid())
+  empresaId       String
+  stripeInvoiceId String?   @unique
+  valor           Float
+  moeda           String    @default("brl")
+  status          String
+  dataPagamento   DateTime?
+  urlFaturaPDF    String?
+  criadoEm        DateTime  @default(now())
+  empresa         Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([empresaId])
+  @@index([stripeInvoiceId])
+  @@index([dataPagamento])
+  @@index([status])
+}
+
+model SistemaToken {
+  id            String    @id @default(uuid())
+  userId        String?
+  empresaId     String?
+  provider      String
+  accessToken   String
+  refreshToken  String?
+  dataExpiracao DateTime?
+  criadoEm      DateTime  @default(now())
+  atualizadoEm  DateTime  @updatedAt
+  empresa       Empresa?  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([empresaId])
+  @@index([provider])
+  @@index([dataExpiracao])
+}
