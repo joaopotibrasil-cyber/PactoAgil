@@ -27,6 +27,8 @@ function RegisterForm() {
   const [selectedCompany, setSelectedCompany] = useState<CompanySuggestion | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [manualCompanyName, setManualCompanyName] = useState("");
+  const [manualCnpj, setManualCnpj] = useState("");
 
   // Extrair domínio para sugerir busca
   useEffect(() => {
@@ -63,6 +65,8 @@ function RegisterForm() {
   const handleResetCompany = () => {
     setSelectedCompany(null);
     setSuggestions([]);
+    setManualCompanyName("");
+    setManualCnpj("");
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -75,6 +79,9 @@ function RegisterForm() {
       formData.set("existingCompanyId", selectedCompany.id);
       formData.set("companyName", selectedCompany.nome);
       formData.set("cnpj", selectedCompany.cnpj);
+    } else {
+      formData.set("companyName", manualCompanyName);
+      formData.set("cnpj", manualCnpj);
     }
     
     const result = await registerAction(formData);
@@ -207,8 +214,8 @@ function RegisterForm() {
                 type="text"
                 required
                 disabled={!!selectedCompany}
-                value={selectedCompany?.nome || ""}
-                onChange={() => {}} // Campo controlado ou desativado
+                value={selectedCompany ? selectedCompany.nome : manualCompanyName}
+                onChange={(e) => setManualCompanyName(e.target.value)}
                 placeholder="Razão Social ou Nome Fantasia"
                 className={`w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25 ${selectedCompany ? 'opacity-70 cursor-not-allowed bg-accent/5' : ''}`}
               />
@@ -223,8 +230,8 @@ function RegisterForm() {
                   type="text"
                   required
                   disabled={!!selectedCompany}
-                  value={selectedCompany?.cnpj || ""}
-                  onChange={() => {}}
+                  value={selectedCompany ? selectedCompany.cnpj : manualCnpj}
+                  onChange={(e) => setManualCnpj(e.target.value)}
                   placeholder="00.000.000/0000-00"
                   className={`w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25 ${selectedCompany ? 'opacity-70 cursor-not-allowed bg-accent/5' : ''}`}
                 />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ShieldCheck } from "lucide-react";
@@ -16,6 +16,7 @@ gsap.registerPlugin(ScrollTrigger);
 export default function Home() {
   const heroRef = useRef<HTMLElement>(null);
   const navRef = useRef<HTMLElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -27,12 +28,9 @@ export default function Home() {
 
       ScrollTrigger.create({
         trigger: heroRef.current,
-        start: "bottom top+=120",
-        end: "bottom top+=20",
-        onToggle: (self) => {
-          if (!navRef.current) return;
-          navRef.current.classList.toggle("glass-panel", self.isActive);
-        },
+        start: "top top-=100",
+        onEnter: () => setIsScrolled(true),
+        onLeaveBack: () => setIsScrolled(false),
       });
     });
 
@@ -43,24 +41,35 @@ export default function Home() {
     <main className="relative text-foreground selection:bg-accent selection:text-accent-foreground">
       <nav
         ref={navRef}
-        className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-[min(1120px,92%)] rounded-full px-5 py-3 border border-transparent transition-all duration-300 flex items-center justify-between group"
+        className={`fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-[min(1120px,92%)] rounded-full px-5 py-3 border transition-all duration-500 flex items-center justify-between group ${
+          isScrolled ? "glass-panel border-border-soft" : "border-transparent backdrop-blur-sm bg-black/10"
+        }`}
       >
-        <BrandLogo href="/" compact className="shrink-0 group-[.glass-panel]:brightness-100 dark:brightness-110" />
+        <BrandLogo 
+          href="/" 
+          compact 
+          className="shrink-0"
+          imageClassName={`transition-all duration-500 ${
+            isScrolled ? "invert-0" : "invert"
+          } dark:invert`} 
+        />
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide">
-          <a href="#features" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Funcionalidades</a>
-          <a href="#manifesto" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Manifesto</a>
-          <a href="#protocol" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Protocolo</a>
+          <a href="#features" className={`hover-lift transition-all duration-300 ${isScrolled ? "text-foreground" : "text-white/90 drop-shadow-md hover:text-white"}`}>Funcionalidades</a>
+          <a href="#manifesto" className={`hover-lift transition-all duration-300 ${isScrolled ? "text-foreground" : "text-white/90 drop-shadow-md hover:text-white"}`}>Manifesto</a>
+          <a href="#protocol" className={`hover-lift transition-all duration-300 ${isScrolled ? "text-foreground" : "text-white/90 drop-shadow-md hover:text-white"}`}>Protocolo</a>
         </div>
         <div className="flex items-center gap-3">
           <a
             href="/login"
-            className="magnetic text-sm font-semibold text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 px-4 py-2 hidden sm:block"
+            className={`magnetic text-sm font-semibold transition-all duration-300 px-4 py-2 hidden sm:block ${
+              isScrolled ? "text-foreground" : "text-white/90 drop-shadow-md hover:text-white"
+            }`}
           >
             Acesso Cliente
           </a>
           <a
             href="#pricing"
-            className="magnetic hover-lift inline-flex items-center gap-2 rounded-full bg-primary text-white px-6 py-2.5 font-bold text-sm neo-ring"
+            className="magnetic hover-lift inline-flex items-center gap-2 rounded-full bg-primary text-white px-6 py-2.5 font-bold text-sm shadow-xl shadow-primary/30 neo-ring"
           >
             Assinar
           </a>
