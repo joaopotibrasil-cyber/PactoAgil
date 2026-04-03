@@ -45,7 +45,7 @@ export async function registerAction(formData: FormData) {
 
   try {
     // 2. Criar ou Vincular Empresa e Perfil no Prisma (Transação)
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       let companyId = existingCompanyId;
 
       if (!companyId) {

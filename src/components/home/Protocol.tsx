@@ -129,23 +129,15 @@ export function Protocol() {
                 ) : null}
 
                 {step.visual === "wave" ? (
-                  <div className="relative w-full h-full flex items-center justify-center bg-surface-dim overflow-hidden">
-                    <svg viewBox="0 0 380 220" className="w-full h-full opacity-40">
-                      <path
-                        d="M10 120 L70 120 L94 72 L122 172 L150 98 L176 120 L214 120 L248 84 L278 146 L314 120 L370 120"
-                        fill="none"
-                        stroke="var(--accent)"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        style={{
-                          strokeDasharray: 18,
-                          animation: "dash-flow 2.1s linear infinite",
-                        }}
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-mono text-accent/60 uppercase tracking-widest">
-                      Digital Draft Generation
-                    </div>
+                  <div className="relative w-full h-full">
+                    <Image 
+                      src="/step-03.png" 
+                      alt={step.title} 
+                      fill 
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover rounded-[1.2rem] brightness-95"
+                    />
+                     <div className="absolute inset-0 bg-gradient-to-t from-background/30 to-transparent" />
                   </div>
                 ) : null}
               </div>

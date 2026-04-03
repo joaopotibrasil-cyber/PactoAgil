@@ -45,16 +45,16 @@ export default function Home() {
         ref={navRef}
         className="fixed top-5 left-1/2 -translate-x-1/2 z-[60] w-[min(1120px,92%)] rounded-full px-5 py-3 border border-transparent transition-all duration-300 flex items-center justify-between group"
       >
-        <BrandLogo href="/" compact className="shrink-0 group-[.glass-panel]:brightness-100 brightness-110" />
+        <BrandLogo href="/" compact className="shrink-0 group-[.glass-panel]:brightness-100 dark:brightness-110" />
         <div className="hidden md:flex items-center gap-8 text-sm font-semibold tracking-wide">
-          <a href="#features" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Funcionalidades</a>
-          <a href="#manifesto" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Manifesto</a>
-          <a href="#protocol" className="hover-lift text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Protocolo</a>
+          <a href="#features" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Funcionalidades</a>
+          <a href="#manifesto" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Manifesto</a>
+          <a href="#protocol" className="hover-lift text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 transition-opacity">Protocolo</a>
         </div>
         <div className="flex items-center gap-3">
           <a
             href="/login"
-            className="magnetic text-sm font-semibold text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 px-4 py-2 hidden sm:block"
+            className="magnetic text-sm font-semibold text-slate-800 dark:text-white group-[.glass-panel]:text-foreground/80 hover:opacity-80 px-4 py-2 hidden sm:block"
           >
             Acesso Cliente
           </a>

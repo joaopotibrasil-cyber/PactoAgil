@@ -92,12 +92,12 @@ export default function GeradorPage() {
   function addCategory() {
     const cleaned = newCategory.trim();
     if (!cleaned) return;
-    setCategories((prev) => [...prev, cleaned]);
+    setCategories((prev: string[]) => [...prev, cleaned]);
     setNewCategory("");
   }
 
   const draftText = useMemo(() => {
-    const scenarioTitle = scenario ? scenarios[scenario].title : "Cenário ainda não selecionado";
+    const scenarioTitle = scenario ? (scenarios[scenario as ScenarioKey].title) : "Cenário ainda não selecionado";
     return [
       "MINUTA DE ACORDO COLETIVO DE TRABALHO",
       `Fluxo ativo: ${scenarioTitle}`,
@@ -172,7 +172,7 @@ export default function GeradorPage() {
             <div className="rounded-[1.5rem] border border-border-soft bg-surface/60 p-5 flex flex-col">
               <h3 className="text-xs font-mono uppercase tracking-[0.1em] text-foreground/50 mb-4 px-1">Ordem da Minuta</h3>
               <div className="space-y-2.5 max-h-64 overflow-y-auto pr-2 flex-1 scrollbar-thin scrollbar-thumb-border-soft scrollbar-track-transparent">
-                {categories.map((category, index) => (
+                {categories.map((category: string, index: number) => (
                   <div key={`${category}-${index}`} className="group rounded-[1rem] border border-border-soft bg-background hover:bg-surface-dim transition-colors px-4 py-3 text-sm flex items-center gap-3 shadow-sm">
                     <span className="flex-1 font-medium">{category}</span>
                     <button onClick={() => moveCategory(index, -1)} className="p-1.5 rounded-lg text-foreground/40 hover:text-foreground hover:bg-surface transition-colors" aria-label="Subir categoria">
@@ -187,10 +187,10 @@ export default function GeradorPage() {
               <div className="mt-4 flex gap-2 pt-4 border-t border-border-soft/50">
                 <input
                   value={newCategory}
-                  onChange={(event) => setNewCategory(event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewCategory(event.target.value)}
                   placeholder="Nova categoria"
                   className="flex-1 rounded-[1rem] border border-border-soft bg-surface px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-all"
-                  onKeyDown={e => e.key === 'Enter' && addCategory()}
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && addCategory()}
                 />
                 <button onClick={addCategory} className="rounded-[1rem] bg-primary text-primary-foreground px-4 py-2.5 text-sm font-bold magnetic flex items-center justify-center shrink-0">
                   <Plus className="h-4 w-4" />
