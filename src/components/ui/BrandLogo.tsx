@@ -6,16 +6,18 @@ export function BrandLogo({
   href,
   className = "",
   imageClassName = "",
+  src = "/logo-pacto-agil-new.png",
 }: {
   compact?: boolean;
   href?: string;
   className?: string;
   imageClassName?: string;
+  src?: string;
 }) {
   const content = (
     <span className={`inline-flex items-center ${className}`.trim()}>
       <Image
-        src="/logo-pacto-agil-new.png"
+        src={src || "/logo-pacto-agil-new.png"}
         alt="Pacto Agil"
         width={compact ? 42 : 200}
         height={compact ? 42 : 56}

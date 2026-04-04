@@ -1,9 +1,18 @@
-import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
 
 const searchSchema = z.string().min(2).max(100).regex(/^[\p{L}\p{N}\s\-\.]+$/u);
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Inicializando Supabase nativamente para bypassar o compilador do Prima em Edge
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(req: Request) {
   try {
@@ -29,24 +38,19 @@ export async function GET(req: Request) {
 
     const sanitizedQuery = validation.data;
 
-    const companies = await prisma.empresa.findMany({
-      where: {
-        OR: [
-          { nome: { contains: sanitizedQuery, mode: 'insensitive' } },
-          { cnpj: { contains: sanitizedQuery, mode: 'insensitive' } },
-        ],
-      },
-      select: {
-        id: true,
-        nome: true,
-        cnpj: true,
-      },
-      take: 5,
-    });
+    const { data: companies, error } = await supabase
+      .from('Empresa')
+      .select('id, nome, cnpj')
+      .or(`nome.ilike.%${sanitizedQuery}%,cnpj.ilike.%${sanitizedQuery}%`)
+      .limit(5);
 
-    return NextResponse.json(companies);
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json(companies || []);
   } catch (error: any) {
     console.error('[COMPANIES_SEARCH_ERROR]', error);
-    return new NextResponse('Internal Error', { status: 500 });
+    return NextResponse.json({ error: 'Internal Error', details: error.message }, { status: 500 });
   }
 }

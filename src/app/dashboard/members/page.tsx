@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
 import { Users, Shield, Mail, BadgeCheck, Zap, Info } from "lucide-react";
 import { InviteMemberButton } from "./InviteMemberButton";
 
@@ -33,19 +32,14 @@ export default async function MembersPage() {
 
   if (!user) redirect("/login");
 
-  const perfil = await prisma.perfil.findUnique({
-    where: { userId: user.id },
-    include: {
-      empresa: {
-        include: {
-          assinatura: true,
-          usuarios: true
-        }
-      }
-    }
-  });
+  // Buscar perfil do usuário com empresa
+  const { data: perfil } = await supabase
+    .from("Perfil")
+    .select("*, empresaId")
+    .eq("userId", user.id)
+    .single();
 
-  if (!perfil || !perfil.empresa) {
+  if (!perfil || !perfil.empresaId) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center p-8 bg-surface/40 backdrop-blur-xl rounded-[2.5rem] border border-border-soft">
         <Users className="w-16 h-16 text-accent opacity-20 mb-6" />
@@ -58,9 +52,28 @@ export default async function MembersPage() {
     );
   }
 
-  const empresa = perfil.empresa;
-  const currentMembers = empresa.usuarios.length;
-  const planKey = (empresa.assinatura?.tipoPlano || "GRATIS").toUpperCase() as keyof typeof PLAN_LIMITS;
+  // Buscar empresa
+  const { data: empresa } = await supabase
+    .from("Empresa")
+    .select("id, nome")
+    .eq("id", perfil.empresaId)
+    .single();
+
+  // Buscar assinatura
+  const { data: assinatura } = await supabase
+    .from("Assinatura")
+    .select("tipoPlano, status")
+    .eq("empresaId", perfil.empresaId)
+    .single();
+
+  // Buscar todos os membros da empresa
+  const { data: membros } = await supabase
+    .from("Perfil")
+    .select("id, nomeCompleto, email, role")
+    .eq("empresaId", perfil.empresaId);
+
+  const currentMembers = membros?.length || 0;
+  const planKey = (assinatura?.tipoPlano || "GRATIS").toUpperCase() as keyof typeof PLAN_LIMITS;
   const limit = PLAN_LIMITS[planKey] || 2;
   const isLimitReached = currentMembers >= limit;
 
@@ -74,7 +87,7 @@ export default async function MembersPage() {
           </div>
           <h1 className="text-4xl font-semibold tracking-tight">Colaboradores</h1>
           <p className="mt-2 text-foreground/60 max-w-xl">
-            Gerencie o acesso dos advogados e negociadores da sua organização <strong className="text-accent">{empresa.nome}</strong>.
+            Gerencie o acesso dos advogados e negociadores da sua organização <strong className="text-accent">{empresa?.nome || "Sua empresa"}</strong>.
           </p>
         </div>
 
@@ -98,7 +111,7 @@ export default async function MembersPage() {
           <div className="mt-4 h-1.5 w-full bg-background rounded-full overflow-hidden">
             <div 
               className={`h-full transition-all duration-1000 ease-out ${isLimitReached ? 'bg-red-500' : 'bg-accent'}`}
-              style={{ width: `${(currentMembers / limit) * 100}%` }}
+              style={{ width: `${Math.min((currentMembers / limit) * 100, 100)}%` }}
             />
           </div>
           {isLimitReached && (
@@ -133,53 +146,59 @@ export default async function MembersPage() {
             </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-xs uppercase tracking-widest text-foreground/40 font-mono">
-                <th className="px-8 py-5 font-medium border-b border-border-soft">Colaborador</th>
-                <th className="px-8 py-5 font-medium border-b border-border-soft">E-mail</th>
-                <th className="px-8 py-5 font-medium border-b border-border-soft">Função</th>
-                <th className="px-8 py-5 font-medium border-b border-border-soft text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-soft">
-              {(empresa.usuarios as Perfil[]).map((m) => (
-                <tr key={m.id} className="group hover:bg-surface-dim transition-colors">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center text-accent text-sm font-bold border border-accent/20">
-                        {m.nomeCompleto ? m.nomeCompleto.charAt(0).toUpperCase() : "?"}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">{m.nomeCompleto}</div>
-                        <div className="text-[0.6rem] text-foreground/40 font-mono uppercase tracking-widest">Workspace Member</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 text-sm text-foreground/80">
-                      <Mail className="w-4 h-4 opacity-30" />
-                      <span>{m.email}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                     <span className={`text-[0.65rem] font-mono font-bold px-2 py-1 rounded-md border ${
-                       m.role === 'ADMIN' ? 'bg-accent/10 border-accent/20 text-accent' : 'bg-surface border-border-soft text-foreground/40'
-                     }`}>
-                        {m.role}
-                     </span>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <button className="text-[0.65rem] font-mono font-bold tracking-widest text-foreground/40 hover:text-red-400 transition-colors uppercase">
-                      Desativar
-                    </button>
-                  </td>
+        {membros && membros.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-xs uppercase tracking-widest text-foreground/40 font-mono">
+                  <th className="px-8 py-5 font-medium border-b border-border-soft">Colaborador</th>
+                  <th className="px-8 py-5 font-medium border-b border-border-soft">E-mail</th>
+                  <th className="px-8 py-5 font-medium border-b border-border-soft">Função</th>
+                  <th className="px-8 py-5 font-medium border-b border-border-soft text-right">Ação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border-soft">
+                {(membros as Perfil[]).map((m) => (
+                  <tr key={m.id} className="group hover:bg-surface-dim transition-colors">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center text-accent text-sm font-bold border border-accent/20">
+                          {m.nomeCompleto ? m.nomeCompleto.charAt(0).toUpperCase() : "?"}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-white">{m.nomeCompleto || "Sem nome"}</div>
+                          <div className="text-[0.6rem] text-foreground/40 font-mono uppercase tracking-widest">Workspace Member</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-sm text-foreground/80">
+                        <Mail className="w-4 h-4 opacity-30" />
+                        <span>{m.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                       <span className={`text-[0.65rem] font-mono font-bold px-2 py-1 rounded-md border ${
+                         m.role === 'ADMIN' ? 'bg-accent/10 border-accent/20 text-accent' : 'bg-surface border-border-soft text-foreground/40'
+                       }`}>
+                          {m.role}
+                       </span>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <button className="text-[0.65rem] font-mono font-bold tracking-widest text-foreground/40 hover:text-red-400 transition-colors uppercase">
+                        Desativar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="py-12 text-center text-foreground/50 font-medium">
+            Nenhum membro cadastrado nesta empresa.
+          </div>
+        )}
       </div>
 
       {/* Footer Branding */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,9 +13,12 @@ import {
   X,
   CreditCard,
   Loader2,
-  Users
+  Users,
+  User,
+  ShieldCheck,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = [
   { href: "/dashboard", label: "Painel de Controle", icon: LayoutDashboard },
@@ -25,11 +28,70 @@ const navItems = [
   { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
 ];
 
+interface UserProfile {
+  nomeCompleto: string;
+  email: string;
+  role: string;
+  empresaNome: string;
+  plano: string;
+  logoUrl?: string;
+  corPrimaria?: string;
+}
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return;
+
+        const { data: perfil } = await supabase
+          .from("Perfil")
+          .select(`
+            nomeCompleto, email, role,
+            empresa: Empresa (
+              nome,
+              logoUrl,
+              corPrimaria,
+              assinatura: Assinatura (tipoPlano)
+            )
+          `)
+          .eq("userId", user.id)
+          .single();
+
+        if (perfil) {
+          const empresa = perfil.empresa
+            ? (Array.isArray(perfil.empresa) ? perfil.empresa[0] : perfil.empresa)
+            : null;
+          const assinatura = empresa?.assinatura
+            ? (Array.isArray(empresa.assinatura) ? empresa.assinatura[0] : empresa.assinatura)
+            : null;
+
+          setUserProfile({
+            nomeCompleto: perfil.nomeCompleto || user.email?.split("@")[0] || "Usuário",
+            email: perfil.email || user.email || "",
+            role: perfil.role || "USER",
+            empresaNome: empresa?.nome || "Sem empresa",
+            plano: assinatura?.tipoPlano || "SEM PLANO",
+            logoUrl: empresa?.logoUrl || undefined,
+            corPrimaria: empresa?.corPrimaria || undefined,
+          });
+        }
+      } catch (err) {
+        console.error("[DashboardLayout] Erro ao buscar perfil:", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const SidebarContent = () => {
     const [isPortalLoading, setIsPortalLoading] = useState(false);
@@ -37,7 +99,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const handlePortal = async () => {
       try {
         setIsPortalLoading(true);
-        const response = await fetch("/api/portal", { method: "POST" });
+        const response = await fetch("/api/portal", { 
+          method: "POST",
+          credentials: "include",
+        });
+        
+        if (response.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
+        
+        if (response.status === 400) {
+          alert("Nenhuma assinatura ativa encontrada. Complete o checkout primeiro.");
+          return;
+        }
+
         const data = await response.json();
         if (data.url) {
           window.location.href = data.url;
@@ -56,7 +132,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <>
         <div className="px-6 py-6 border-b border-border-soft flex items-center justify-between">
           <div>
-            <BrandLogo href="/dashboard" />
+            <BrandLogo href="/dashboard" src={userProfile?.logoUrl} />
             <p className="mt-3 text-xs font-mono uppercase tracking-[0.14em] text-foreground/60">Workspace Sindical</p>
           </div>
           <button 
@@ -66,6 +142,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Perfil do Usuário */}
+        {userProfile && (
+          <div className="px-4 py-4 border-b border-border-soft">
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-surface-dim/50 border border-border-soft">
+              <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/20 flex items-center justify-center shrink-0">
+                <User className="w-5 h-5 text-accent" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate">{userProfile.nomeCompleto}</p>
+                <p className="text-[0.65rem] text-foreground/50 truncate">{userProfile.email}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-3 px-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-accent shrink-0" />
+              <span className="text-[0.6rem] font-mono uppercase tracking-[0.15em] text-accent truncate">
+                {userProfile.plano} &bull; {userProfile.empresaNome}
+              </span>
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navItems.map((item) => {
@@ -116,7 +213,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div 
+      className="min-h-screen bg-background text-foreground flex"
+    >
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          ${userProfile?.corPrimaria ? `
+            --accent: ${userProfile.corPrimaria}; 
+            --primary: ${userProfile.corPrimaria};
+          ` : ""}
+        }
+      `}} />
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-72 border-r border-border-soft bg-surface/90 backdrop-blur-xl flex-col sticky top-0 h-screen z-30">
         <SidebarContent />
@@ -142,7 +249,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="lg:hidden px-4 py-4 border-b border-border-soft bg-surface/90 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between">
-          <BrandLogo compact href="/dashboard" />
+          <BrandLogo compact href="/dashboard" src={userProfile?.logoUrl} />
           <button 
             onClick={toggleMobileMenu}
             className="p-2 text-foreground/80 hover:text-accent hover:bg-surface-dim rounded-lg transition-colors"

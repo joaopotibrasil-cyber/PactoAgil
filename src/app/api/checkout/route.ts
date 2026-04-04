@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { stripe } from '@/lib/billing/stripe';
-import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
@@ -11,12 +11,18 @@ export const dynamic = 'force-dynamic';
 const planKeySchema = z.enum(['DESCOBERTA', 'MOVIMENTO', 'DIRECAO', 'LIDERANCA']);
 
 async function createCheckoutSession(userId: string, email: string, planKey: string) {
-  // Mapeamento seguro no servidor
+  const supabaseAdmin = createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Mapeamento seguro no servidor — alterna entre teste e produção automaticamente
+  const isDev = process.env.NODE_ENV === 'development';
   const priceIdMap: Record<string, string | undefined> = {
-    'DESCOBERTA': process.env.STRIPE_PRICE_ID_DESCOBERTA,
-    'MOVIMENTO': process.env.STRIPE_PRICE_ID_MOVIMENTO,
-    'DIRECAO': process.env.STRIPE_PRICE_ID_DIRECAO,
-    'LIDERANCA': process.env.STRIPE_PRICE_ID_LIDERANCA,
+    'DESCOBERTA': isDev ? process.env.STRIPE_TEST_PRICE_ID_DESCOBERTA : process.env.STRIPE_PRICE_ID_DESCOBERTA,
+    'MOVIMENTO': isDev ? process.env.STRIPE_TEST_PRICE_ID_MOVIMENTO : process.env.STRIPE_PRICE_ID_MOVIMENTO,
+    'DIRECAO': isDev ? process.env.STRIPE_TEST_PRICE_ID_DIRECAO : process.env.STRIPE_PRICE_ID_DIRECAO,
+    'LIDERANCA': isDev ? process.env.STRIPE_TEST_PRICE_ID_LIDERANCA : process.env.STRIPE_PRICE_ID_LIDERANCA,
   };
 
   const priceId = priceIdMap[planKey];
@@ -26,24 +32,47 @@ async function createCheckoutSession(userId: string, email: string, planKey: str
   }
 
   // 1. Buscar ou criar perfil
-  let perfil = await prisma.perfil.findUnique({
-    where: { userId },
-    include: { empresa: { include: { assinatura: true } } }
-  });
+  let perfil;
+  const { data: perfilData, error: perfilError } = await supabaseAdmin
+    .from('Perfil')
+    .select(`
+      *,
+      empresa: Empresa (
+        assinatura: Assinatura (*)
+      )
+    `)
+    .eq('userId', userId)
+    .single();
 
-  if (!perfil) {
-    perfil = await prisma.perfil.create({
-      data: {
+  if (perfilError || !perfilData) {
+    const { data: newPerfil, error: createError } = await supabaseAdmin
+      .from('Perfil')
+      .insert({
+        id: crypto.randomUUID(),
         userId,
         email,
         nomeCompleto: email.split('@')[0],
-      },
-      include: { empresa: { include: { assinatura: true } } }
-    });
+        role: 'ADMIN',
+        atualizadoEm: new Date().toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (createError) throw new Error('Falha ao criar o perfil na inicialização do checkout: ' + createError.message);
+    perfil = newPerfil;
+  } else {
+    perfil = perfilData;
   }
 
   // 2. Definir o Customer ID
-  let stripeCustomerId = perfil.empresa?.assinatura?.stripeCustomerId;
+  let stripeCustomerId = null;
+  if (perfil?.empresa) {
+    const empresaInfo = Array.isArray(perfil.empresa) ? perfil.empresa[0] : perfil.empresa;
+    if (empresaInfo?.assinatura) {
+      const assInfo = Array.isArray(empresaInfo.assinatura) ? empresaInfo.assinatura[0] : empresaInfo.assinatura;
+      stripeCustomerId = assInfo?.stripeCustomerId;
+    }
+  }
 
   if (!stripeCustomerId) {
     const customer = await stripe.customers.create({

@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { EmailService } from '@/lib/email/EmailService';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
@@ -40,7 +39,7 @@ export async function inviteMemberAction(formData: FormData) {
     return { error: 'E-mail inválido.' };
   }
 
-  // Validação de nome (opcional)
+  // Validação de nome
   let validatedName = guestName;
   if (guestName && guestName.trim()) {
     const nameValidation = nameSchema.safeParse(guestName.trim());
@@ -50,34 +49,58 @@ export async function inviteMemberAction(formData: FormData) {
     validatedName = nameValidation.data;
   }
 
-  // 1. Buscar empresa e assinatura do admin que está convidando
-  const adminPerfil = await prisma.perfil.findUnique({
-    where: { userId: user.id },
-    include: {
-      empresa: {
-        include: {
-          assinatura: true,
-          usuarios: true,
-        }
-      }
-    }
-  });
+  // 1. Buscar perfil do admin que está convidando
+  const adminSupabaseRead = await createClient();
+  const { data: adminPerfil } = await adminSupabaseRead
+    .from("Perfil")
+    .select("nomeCompleto, empresaId")
+    .eq("userId", user.id)
+    .single();
 
-  if (!adminPerfil?.empresa) {
+  if (!adminPerfil?.empresaId) {
     return { error: 'Você não está vinculado a nenhuma empresa.' };
   }
 
-  const empresa = adminPerfil.empresa;
-  const planKey = (empresa.assinatura?.tipoPlano || 'GRATIS').toUpperCase();
+  // 2. Buscar empresa
+  const { data: empresa } = await adminSupabaseRead
+    .from("Empresa")
+    .select("id, nome")
+    .eq("id", adminPerfil.empresaId)
+    .single();
+
+  if (!empresa) {
+    return { error: 'Empresa não encontrada.' };
+  }
+
+  // 3. Buscar assinatura
+  const { data: assinatura } = await adminSupabaseRead
+    .from("Assinatura")
+    .select("tipoPlano")
+    .eq("empresaId", empresa.id)
+    .single();
+
+  const planKey = (assinatura?.tipoPlano || 'GRATIS').toUpperCase();
   const limit = PLAN_LIMITS[planKey] || 2;
-  const currentCount = empresa.usuarios.length;
+
+  // 4. Contar membros atuais
+  const { count } = await adminSupabaseRead
+    .from("Perfil")
+    .select("id", { count: "exact", head: true })
+    .eq("empresaId", empresa.id);
+
+  const currentCount = count || 0;
 
   if (currentCount >= limit) {
     return { error: `Limite do plano atingido (${limit} usuários). Faça upgrade para convidar mais membros.` };
   }
 
-  // 2. Verificar se o e-mail já é membro desta empresa
-  const existing = await prisma.perfil.findUnique({ where: { email: guestEmail } });
+  // 5. Verificar se o e-mail já é membro
+  const { data: existing } = await adminSupabaseRead
+    .from("Perfil")
+    .select("id, empresaId")
+    .eq("email", guestEmail)
+    .single();
+
   if (existing) {
     if (existing.empresaId === empresa.id) {
       return { error: 'Este e-mail já é membro da sua organização.' };
@@ -85,7 +108,7 @@ export async function inviteMemberAction(formData: FormData) {
     return { error: 'Este e-mail já está cadastrado em outra organização.' };
   }
 
-  // 3. Gerar link de convite via Supabase Admin (para enviar e-mail manual personalizado)
+  // 6. Gerar link de convite via Supabase Admin
   const adminSupabase = createAdminClient();
   
   const { data: inviteData, error: inviteError } = await adminSupabase.auth.admin.generateLink({
@@ -102,7 +125,7 @@ export async function inviteMemberAction(formData: FormData) {
     return { error: inviteError.message || 'Erro ao gerar convite.' };
   }
 
-  // 4. Disparar E-mail Personalizado via EmailService
+  // 7. Disparar E-mail Personalizado via EmailService
   if (inviteData?.properties?.action_link) {
     await EmailService.sendMemberInviteEmail(
       guestEmail.toLowerCase().trim(),
@@ -113,18 +136,23 @@ export async function inviteMemberAction(formData: FormData) {
     );
   }
 
-  // 5. Pré-criar Perfil vinculado à empresa (será completado no callback)
-  // Nota: inviteData.user contém os dados do usuário convidado criado no Supabase Auth
+  // 8. Pré-criar Perfil vinculado à empresa via Supabase Admin
   if (inviteData?.user) {
-    await prisma.perfil.create({
-      data: {
+    const { error: createError } = await adminSupabase
+      .from("Perfil")
+      .insert({
         userId: inviteData.user.id,
         email: guestEmail.toLowerCase().trim(),
         nomeCompleto: validatedName || guestEmail.split('@')[0],
         empresaId: empresa.id,
         role: 'MEMBER',
-      }
-    });
+        criadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString(),
+      });
+
+    if (createError) {
+      console.error('[INVITE_PROFILE_CREATE_ERROR]', createError);
+    }
   }
 
   revalidatePath('/dashboard/members');

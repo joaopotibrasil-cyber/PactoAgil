@@ -1,4 +1,14 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient as PrismaClientEdge } from '@prisma/client';
+
+// Contorno DEFINITIVO para o bug do Turbopack no Next.js (forçando o Edge runtime):
+// Ao invés de usar o '@prisma/client' que o Next.js intercepta,
+// buscamos diretamente no pacote oculto .prisma gerado pelo CLI.
+let PrismaClient: typeof PrismaClientEdge;
+if (typeof window === 'undefined') {
+  PrismaClient = require('.prisma/client').PrismaClient;
+} else {
+  PrismaClient = PrismaClientEdge; // fallback no edge/browser (apesar de sabermos que falha, mas evita crashes sintáticos)
+}
 
 const prismaClientSingleton = () => {
   return new PrismaClient({

@@ -1,63 +1,84 @@
 "use client";
 
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useMemo, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { Building2, Filter, Plus, Search } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { 
+  Building2, 
+  Filter, 
+  Plus, 
+  Search, 
+  FileText, 
+  Trash2, 
+  ExternalLink,
+  Loader2,
+  Calendar,
+  Layers
+} from "lucide-react";
 
-type Status = "finalizadas" | "andamento" | "atrasadas" | "total";
-
-const records = [
-  {
-    id: "acme-metal",
-    empresa: "Acme Metalurgica",
-    dataBase: "2026-05-01",
-    status: "andamento" as const,
-    instrumento: "ACT 2026",
-  },
-  {
-    id: "plural-telecom",
-    empresa: "Plural Telecom",
-    dataBase: "2026-04-15",
-    status: "finalizadas" as const,
-    instrumento: "CCT 2026",
-  },
-  {
-    id: "atlas-log",
-    empresa: "Atlas Logistica",
-    dataBase: "2026-04-10",
-    status: "atrasadas" as const,
-    instrumento: "ACT 2026",
-  },
-  {
-    id: "brisas-hotel",
-    empresa: "Brisas Hotelaria",
-    dataBase: "2026-06-01",
-    status: "andamento" as const,
-    instrumento: "CCT 2026",
-  },
-];
-
-const statusLabel: Record<Exclude<Status, "total">, string> = {
-  andamento: "Em andamento",
-  finalizadas: "Finalizada",
-  atrasadas: "Atrasada",
+const statusLabel: Record<string, string> = {
+  RASCUNHO: "Rascunho",
+  ANDAMENTO: "Em andamento",
+  FINALIZADA: "Finalizada",
+  ATRASADA: "Atrasada",
 };
 
-const statusStyles = {
-  andamento: "bg-warning/10 text-warning border-warning/20",
-  finalizadas: "bg-success/10 text-success border-success/20",
-  atrasadas: "bg-danger/10 text-danger border-danger/20"
+const statusStyles: Record<string, string> = {
+  RASCUNHO: "bg-surface-dim text-foreground/60 border-border-soft",
+  ANDAMENTO: "bg-warning/10 text-warning border-warning/20",
+  FINALIZADA: "bg-success/10 text-success border-success/20",
+  ATRASADA: "bg-danger/10 text-danger border-danger/20"
 };
 
 function NegociacoesContent() {
   const searchParams = useSearchParams();
-  const filtro = (searchParams.get("filtro") ?? "total") as Status;
+  const router = useRouter();
+  const [negotiations, setNegotiations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const filtro = searchParams.get("filtro") ?? "total";
 
-  const filtered = useMemo(() => {
-    if (filtro === "total") return records;
-    return records.filter((item) => item.status === filtro);
-  }, [filtro]);
+  useEffect(() => {
+    fetchNegotiations();
+  }, []);
+
+  const fetchNegotiations = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/negotiations");
+      if (res.ok) {
+        const data = await res.json();
+        setNegotiations(data);
+      }
+    } catch (err) {
+      console.error("Erro ao buscar negociações:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta negociação?")) return;
+    
+    try {
+      const res = await fetch(`/api/negotiations?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setNegotiations(negotiations.filter(n => n.id !== id));
+      }
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+    }
+  };
+
+  const filtered = negotiations.filter(item => {
+    const matchesSearch = 
+      item.nomeEmpresa?.toLowerCase().includes(search.toLowerCase()) ||
+      item.instrumento?.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesFilter = filtro === "total" || item.status === filtro;
+    
+    return matchesSearch && matchesFilter;
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
@@ -67,19 +88,20 @@ function NegociacoesContent() {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 relative z-10">
           <div>
             <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-accent mb-4 px-3 py-1.5 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-sm">
-              Portfólio Ativo
+              <Layers className="h-4 w-4" />
+              Gestão de ACTs e CCTs
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.1]">
-              Negociações por <br className="hidden md:block"/>
-              <span className="font-serif italic font-normal text-5xl md:text-6xl lg:text-7xl text-accent">empresa.</span>
+              Histórico de <br className="hidden md:block"/>
+              <span className="font-serif italic font-normal text-5xl md:text-6xl lg:text-7xl text-accent">negociações.</span>
             </h1>
             <p className="mt-5 text-foreground/70 text-lg font-medium">
-              Filtro ativo: <strong className="text-foreground capitalize">{filtro}</strong>
+              Consulte rascunhos salvos e continue editando suas minutas inteligentes.
             </p>
           </div>
 
           <Link
-            href="/dashboard/geradas"
+            href="/dashboard/gerador"
             className="magnetic hover-lift inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 font-bold text-base neo-ring w-full md:w-auto shrink-0"
           >
             <Plus className="h-5 w-5" />
@@ -94,63 +116,97 @@ function NegociacoesContent() {
             <Search className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-foreground/40 group-focus-within/input:text-accent transition-colors" />
             <input
               type="search"
-              placeholder="Buscar empresa, CNPJ ou instrumento..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por empresa ou instrumento..."
               className="w-full rounded-[1.25rem] border border-border-soft bg-surface/50 py-3.5 pl-12 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all placeholder:text-foreground/40"
             />
           </label>
-          <button className="hover-lift magnetic inline-flex items-center justify-center gap-2 rounded-[1.25rem] border border-border-soft px-6 py-3.5 text-sm font-bold bg-surface hover:bg-surface-dim transition-colors">
-            <Filter className="h-4 w-4" />
-            Filtros avançados
-          </button>
         </div>
 
-        <div className="overflow-x-auto rounded-[1.5rem] border border-border-soft bg-surface/30">
-          <table className="w-full min-w-[800px] text-sm text-left">
-            <thead className="bg-surface/50">
-              <tr className="text-xs font-mono uppercase tracking-[0.15em] text-foreground/50 border-b border-border-soft">
-                <th className="py-4 px-6 font-medium">Empresa</th>
-                <th className="py-4 font-medium">Data-base</th>
-                <th className="py-4 font-medium">Instrumento</th>
-                <th className="py-4 font-medium">Status</th>
-                <th className="py-4 px-6 text-right font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-soft/50">
-              {filtered.map((item) => (
-                <tr key={item.id} className="hover:bg-surface-dim/30 transition-colors group">
-                  <td className="py-4 px-6">
-                    <div className="inline-flex items-center gap-3">
-                      <span className="h-10 w-10 rounded-xl bg-surface border border-border-soft inline-flex items-center justify-center group-hover:border-accent/40 transition-colors">
-                        <Building2 className="h-4 w-4 text-foreground/70" />
-                      </span>
-                      <span className="font-semibold text-base">{item.empresa}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 font-mono text-foreground/80">{item.dataBase}</td>
-                  <td className="py-4 font-medium">{item.instrumento}</td>
-                  <td className="py-4">
-                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${statusStyles[item.status]}`}>
-                      {statusLabel[item.status]}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-right">
-                    <Link
-                      href={`/dashboard/negociacoes/${item.id}`}
-                      className="inline-flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground px-5 py-2.5 text-xs font-bold transition-all magnetic"
-                    >
-                      Ver detalhes
-                    </Link>
-                  </td>
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center text-foreground/30">
+            <Loader2 className="h-10 w-10 animate-spin mb-4" />
+            <p className="font-medium">Buscando negociações...</p>
+          </div>
+        ) : filtered.length > 0 ? (
+          <div className="overflow-x-auto rounded-[1.5rem] border border-border-soft bg-surface/30">
+            <table className="w-full min-w-[800px] text-sm text-left">
+              <thead className="bg-surface/50">
+                <tr className="text-xs font-mono uppercase tracking-[0.15em] text-foreground/50 border-b border-border-soft">
+                  <th className="py-4 px-6 font-medium">Empresa / Título</th>
+                  <th className="py-4 font-medium">Data-base</th>
+                  <th className="py-4 font-medium">Instrumento</th>
+                  <th className="py-4 font-medium">Status</th>
+                  <th className="py-4 px-6 text-right font-medium">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-             <div className="py-12 text-center text-foreground/50 font-medium">
-               Nenhuma negociação encontrada para o filtro atual.
-             </div>
-          )}
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border-soft/50">
+                {filtered.map((item: any) => (
+                  <tr key={item.id} className="hover:bg-surface-dim/30 transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="inline-flex items-center gap-3">
+                        <span className="h-10 w-10 rounded-xl bg-surface border border-border-soft inline-flex items-center justify-center group-hover:border-accent/40 transition-colors">
+                          <Building2 className="h-4 w-4 text-foreground/70" />
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-base">{item.nomeEmpresa}</span>
+                          <span className="text-[10px] text-foreground/30 font-bold uppercase tracking-widest">{item.titulo || "Sem título"}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-4 font-mono text-foreground/80">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3.5 w-3.5 text-accent/50" />
+                        {item.dataBase ? new Date(item.dataBase).toLocaleDateString("pt-BR") : "--/--/----"}
+                      </div>
+                    </td>
+                    <td className="py-4 font-medium">{item.instrumento}</td>
+                    <td className="py-4">
+                      <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-wider ${statusStyles[item.status] || ''}`}>
+                        {statusLabel[item.status] || item.status}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/dashboard/gerador?id=${item.id}`}
+                          className="inline-flex items-center gap-2 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-white px-4 py-2 text-xs font-bold transition-all"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Continuar
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          className="p-2 rounded-xl bg-danger/5 text-danger/40 hover:text-danger hover:bg-danger/10 transition-all border border-transparent hover:border-danger/20"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="py-16 text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-accent/10 border border-accent/20 mb-6">
+              <FileText className="w-10 h-10 text-accent/60" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Nenhuma negociação encontrada</h3>
+            <p className="text-foreground/50 text-base max-w-md mx-auto mb-6">
+              Clique no botão abaixo para iniciar uma nova negociação coletiva com a IA.
+            </p>
+            <Link
+              href="/dashboard/gerador"
+              className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold text-sm hover-lift transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              Nova Negociação
+            </Link>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -158,9 +214,8 @@ function NegociacoesContent() {
 
 export default function NegociacoesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-foreground/50 text-center font-medium animate-pulse">Carregando carteira de negociações...</div>}>
+    <Suspense fallback={<div className="p-8 text-foreground/50 text-center font-medium animate-pulse">Carregando negociações...</div>}>
       <NegociacoesContent />
     </Suspense>
   );
 }
-

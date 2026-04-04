@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getGroqCompletion } from '@/lib/ai/groq';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: Request) {
   try {
-    const { scenario, categories, fields } = await req.json();
+    // Autenticação
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const { scenario, categories, fields, documentContent } = await req.json();
 
     if (!scenario) {
       return NextResponse.json({ error: 'Cenário é obrigatório' }, { status: 400 });
@@ -16,24 +24,39 @@ A minuta deve estar em Português (Brasil), seguindo a estrutura padrão de Acor
 
 PARÂMETROS DA NEGOCIAÇÃO:
 1. Cenário: ${scenario}
-2. Categorias da Minuta: ${categories?.join(', ') || 'Não especificadas'}
+2. Categorias da Minuta (na ordem desejada): ${categories?.join(', ') || 'Não especificadas'}
 3. Campos e Cláusulas Extraídas:
-${fields?.map((f: any) => `- ${f.label}: ${f.value} (Histórico/Origem: ${f.clause})`).join('\n') || 'Nenhum campo adicional fornecido'}
+${fields?.map((f: any) => `- ${f.label}: ${f.value} (Contexto: ${f.clause})`).join('\n') || 'Nenhum campo adicional fornecido'}
 
-OBJETIVO:
-Gere o texto completo da minuta, começando por um título formal e identificando as partes (Empresa e Sindicato representativo). 
-Utilize uma linguagem jurídica clara mas moderna. Divida em Cláusulas numeradas seguindo a ordem das categorias fornecidas.
+${documentContent ? `4. CONTEÚDO DO DOCUMENTO IMPORTADO (usar como base/referência):
+---
+${documentContent.substring(0, 6000)}
+---` : ''}
 
-Foque nos pontos críticos solicitados nos "Campos Extraídos", garantindo que as alterações propostas estejam bem redigidas.
+INSTRUÇÕES DE FORMATO:
+- Comece com "MINUTA DE ACORDO COLETIVO DE TRABALHO" como título.
+- Inclua identificação das partes (use termos genéricos para empresa e sindicato).
+- Numere cada cláusula como "Cláusula 1ª -", "Cláusula 2ª -", etc.
+- Siga a ordem das categorias fornecidas para organizar as cláusulas.
+- Use linguagem jurídica clara e moderna.
+- Inclua cláusula de vigência e disposições gerais ao final.
+- Não inclua comentários ou explicações, apenas o texto da minuta.
     `;
 
-    const systemMessage = "Você é um consultor jurídico sênior do Pacto Ágil, especialista em direito do trabalho e redação de instrumentos normativos de negociação coletiva. Seu objetivo é redigir minutas profissionais, impecáveis e estrategicamente bem estruturadas.";
+    const systemMessage = `Você é um consultor jurídico sênior do Pacto Ágil, especialista em direito do trabalho e redação de instrumentos normativos de negociação coletiva (ACTs e CCTs). 
+Seu objetivo é redigir minutas profissionais, impecáveis e estrategicamente bem estruturadas.
+Sempre responda APENAS com o texto da minuta, sem comentários adicionais, explicações ou markdown.`;
 
     const generatedText = await getGroqCompletion(prompt, systemMessage);
 
     return NextResponse.json({ text: generatedText });
   } catch (error: any) {
-    console.error('Error generating draft:', error);
-    return NextResponse.json({ error: 'Erro ao gerar minuta: ' + error.message }, { status: 500 });
+    console.error('[AI_GENERATE_ERROR]', error);
+
+    if (error.message?.includes('GROQ_API_KEY')) {
+      return NextResponse.json({ error: 'Chave da API de IA não configurada. Configure GROQ_API_KEY no .env' }, { status: 500 });
+    }
+
+    return NextResponse.json({ error: 'Erro ao gerar minuta: ' + (error.message || 'Erro desconhecido') }, { status: 500 });
   }
 }

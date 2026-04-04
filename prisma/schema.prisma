@@ -12,6 +12,8 @@ model Empresa {
   cnpj                String?              @unique
   slug                String?              @unique
   funcionalidade      String?
+  logoUrl             String?
+  corPrimaria         String?              @default("#006fee")
   criadoEm            DateTime             @default(now())
   atualizadoEm        DateTime             @updatedAt
   assinatura          Assinatura?
@@ -66,10 +68,13 @@ model Negociacao {
   id           String   @id @default(uuid())
   empresaId    String
   nomeEmpresa  String
+  titulo       String?
   cnpjAlvo     String?
   dataBase     DateTime
   status       String
   instrumento  String
+  clausulas    Json?
+  minuta       String?  @db.Text
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
   empresa      Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)

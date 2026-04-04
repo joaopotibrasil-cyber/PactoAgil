@@ -1,8 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import prisma from '@/lib/prisma'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { z } from 'zod'
 
@@ -97,15 +97,18 @@ export async function signup(formData: FormData) {
     const nomeExibicao = email.split('@')[0];
 
     try {
-      // 2. Criar Perfil inicial (Multi-tenant)
-      await prisma.perfil.create({
-        data: {
+      // 2. Criar Perfil inicial (Multi-tenant) via Supabase Admin
+      const adminSupabase = createAdminClient();
+      await adminSupabase
+        .from("Perfil")
+        .insert({
           userId: data.user.id,
-          email: email,
+          email: email.toLowerCase().trim(),
           nomeCompleto: nomeExibicao,
-          role: 'ADMIN'
-        }
-      });
+          role: 'ADMIN',
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        });
 
       // Se houver plano, redireciona direto para o checkout (com bypass de login manual)
       if (plan && plan !== "") {

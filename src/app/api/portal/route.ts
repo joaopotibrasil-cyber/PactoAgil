@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/billing/stripe';
-import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -14,17 +14,31 @@ export async function POST() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // 1. Buscar se o usuário já tem um perfil com uma assinatura associada
-    const perfil = await prisma.perfil.findUnique({
-      where: { userId: user.id },
-      include: { empresa: { include: { assinatura: true } } }
-    });
+    const supabaseAdmin = createAdminClient();
 
-    const stripeCustomerId = perfil?.empresa?.assinatura?.stripeCustomerId;
+    // 1. Buscar perfil → empresa → assinatura
+    const { data: perfil } = await supabaseAdmin
+      .from('Perfil')
+      .select(`
+        *,
+        empresa: Empresa (
+          assinatura: Assinatura (*)
+        )
+      `)
+      .eq('userId', user.id)
+      .single();
+
+    let stripeCustomerId: string | null = null;
+    if (perfil?.empresa) {
+      const empresaInfo = Array.isArray(perfil.empresa) ? perfil.empresa[0] : perfil.empresa;
+      if (empresaInfo?.assinatura) {
+        const assInfo = Array.isArray(empresaInfo.assinatura) ? empresaInfo.assinatura[0] : empresaInfo.assinatura;
+        stripeCustomerId = assInfo?.stripeCustomerId || null;
+      }
+    }
 
     if (!stripeCustomerId) {
-       // Se não tiver assinatura, redireciona para o checkout
-       return new NextResponse('No active subscription found', { status: 400 });
+      return new NextResponse('No active subscription found', { status: 400 });
     }
 
     // 2. Criar a sessão do Portal do Stripe

@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Interface para uma cláusula com vetor
@@ -21,16 +21,20 @@ export async function searchSimilarClauses(
   matchCount = 5
 ): Promise<ClauseWithEmbedding[]> {
   try {
-    // Chamada RPC via Prisma para a função de busca vetorial do Supabase
-    // O comando SQL bruto é necessário pois o Prisma ainda não suporta vetores nativamente
-    const result = await prisma.$queryRawUnsafe<ClauseWithEmbedding[]>(
-      `SELECT * FROM match_clausulas($1, $2, $3)`,
-      `[${embedding.join(',')}]`,
-      matchThreshold,
-      matchCount
-    );
+    const supabase = createAdminClient();
+    
+    const { data, error } = await supabase.rpc('match_clausulas', {
+      query_embedding: `[${embedding.join(',')}]`,
+      match_threshold: matchThreshold,
+      match_count: matchCount,
+    });
 
-    return result || [];
+    if (error) {
+      console.error("Erro na busca vetorial:", error);
+      return [];
+    }
+
+    return data || [];
   } catch (error) {
     console.error("Erro na busca vetorial:", error);
     return [];
@@ -46,12 +50,20 @@ export async function storeClause(
   metadata: any
 ) {
   try {
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO clausulas (content, embedding, metadata) VALUES ($1, $2, $3)`,
-      content,
-      `[${embedding.join(',')}]`,
-      JSON.stringify(metadata)
-    );
+    const supabase = createAdminClient();
+    
+    const { error } = await supabase
+      .from('clausulas')
+      .insert({
+        content,
+        embedding: `[${embedding.join(',')}]`,
+        metadata: JSON.stringify(metadata),
+      });
+
+    if (error) {
+      console.error("Erro ao salvar cláusula:", error);
+      throw error;
+    }
   } catch (error) {
     console.error("Erro ao salvar cláusula:", error);
     throw error;

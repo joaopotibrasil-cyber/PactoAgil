@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   // Compressão
   compress: true,
 
+  // Impedir bundling do Prisma pelo Turbopack para evitar erro do Edge Runtime
+  serverExternalPackages: ['@prisma/client', 'prisma'],
+
   // Performance
   poweredByHeader: false,
 
@@ -34,6 +37,7 @@ const nextConfig: NextConfig = {
       font-src 'self' https://fonts.gstatic.com;
       connect-src 'self' https://*.stripe.com https://*.supabase.co https://api.resend.com https://api.groq.com;
       frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://*.supabase.co;
+      worker-src 'self' blob:;
       object-src 'none';
       base-uri 'self';
       form-action 'self';

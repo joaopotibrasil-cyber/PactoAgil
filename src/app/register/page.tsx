@@ -41,9 +41,14 @@ function RegisterForm() {
           setIsSearching(true);
           try {
             const res = await fetch(`/api/companies/search?q=${domainName}`);
-            const data = await res.json();
-            setSuggestions(data);
-            if (data.length > 0) setShowSuggestions(true);
+            if (res.ok) {
+              const data = await res.json();
+              setSuggestions(data);
+              if (data.length > 0) setShowSuggestions(true);
+            } else {
+              setSuggestions([]);
+              console.error("Erro na API de busca:", await res.text());
+            }
           } catch (err) {
             console.error("Erro ao buscar empresas", err);
           } finally {
@@ -60,6 +65,16 @@ function RegisterForm() {
   const handleSelectCompany = (company: CompanySuggestion) => {
     setSelectedCompany(company);
     setShowSuggestions(false);
+  };
+
+  const formatCNPJ = (value: string) => {
+    const cleanValue = value.replace(/\D/g, "");
+    return cleanValue
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d{3})(\d)/, ".$1.$2/$3")
+      .replace(/(\d{4})(\d)/, "$1-$2")
+      .substring(0, 18);
   };
 
   const handleResetCompany = () => {
@@ -231,7 +246,7 @@ function RegisterForm() {
                   required
                   disabled={!!selectedCompany}
                   value={selectedCompany ? selectedCompany.cnpj : manualCnpj}
-                  onChange={(e) => setManualCnpj(e.target.value)}
+                  onChange={(e) => setManualCnpj(formatCNPJ(e.target.value))}
                   placeholder="00.000.000/0000-00"
                   className={`w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25 ${selectedCompany ? 'opacity-70 cursor-not-allowed bg-accent/5' : ''}`}
                 />
