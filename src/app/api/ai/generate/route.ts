@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getGroqCompletion } from '@/lib/ai/groq';
 import { createClient } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
     // Autenticação
