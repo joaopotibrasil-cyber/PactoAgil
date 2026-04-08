@@ -34,6 +34,11 @@ import {
 } from "lucide-react";
 import { useAsyncStates } from "@/lib/hooks";
 import React from 'react';
+import { createClient } from "@/lib/supabase/client";
+
+// Importações estáticas para evitar "Unexpected token export" no agrupamento cliente
+import * as mammoth from "mammoth";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 
 type ScenarioKey = "empresa" | "sindicato" | "zero" | "aditivo";
 
@@ -102,7 +107,12 @@ function GeradorContent() {
     // --- OPERAÇÕES ASSÍNCRONAS CONSOLIDADAS ---
   const { states, execute, isLoading: isAnyLoading } = useAsyncStates({
     load: async (id: string) => {
-      const res = await fetch(`/api/negotiations?id=${id}`);
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const res = await fetch(`/api/negotiations?id=${id}`, {
+        headers: { "Authorization": `Bearer ${session?.access_token}` }
+      });
       if (!res.ok) throw new Error("Erro ao carregar");
       const data = await res.json();
       setNegotiationId(data.id);
@@ -113,9 +123,15 @@ function GeradorContent() {
     },
     analyze: async (content: string) => {
       if (!content) return;
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch("/api/ai/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ documentContent: content, scenario }),
       });
       const data = await response.json();
@@ -129,9 +145,15 @@ function GeradorContent() {
       return data;
     },
     generate: async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch("/api/ai/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({
           scenario,
           categories,
@@ -145,9 +167,15 @@ function GeradorContent() {
       return data;
     },
     save: async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
       const response = await fetch("/api/negotiations", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({
           id: negotiationId,
           titulo: "Negociação - " + new Date().toLocaleDateString("pt-BR"),
@@ -164,9 +192,8 @@ function GeradorContent() {
       return data;
     },
     import: async (file: File) => {
-      const mammoth = await import("mammoth");
       const arrayBuffer = await file.arrayBuffer();
-      const result = await mammoth.default.extractRawText({ arrayBuffer });
+      const result = await mammoth.extractRawText({ arrayBuffer });
       
       setDraftContent(result.value);
       
@@ -193,7 +220,6 @@ function GeradorContent() {
       return result;
     },
     export: async () => {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } = await import("docx");
       const lines = draftText.split("\n");
       const paragraphs: any[] = [];
 
@@ -599,9 +625,9 @@ function GeradorContent() {
                         >
                           <MemoizedFieldItem 
                             field={field} 
-                            onViewOriginal={(field) => setOpenClause({ label: field.label, text: field.clause })}
-                            onEdit={(field) => setEditingField(field)}
-                            onToggle={(key) => {
+                            onViewOriginal={(f: ExtractedField) => setOpenClause({ label: f.label, text: f.clause })}
+                            onEdit={(f: ExtractedField) => setEditingField(f)}
+                            onToggle={(key: string) => {
                               setExtractedFields(prev => prev.map(f => 
                                 f.key === key ? { ...f, selected: !f.selected } : f
                               ));

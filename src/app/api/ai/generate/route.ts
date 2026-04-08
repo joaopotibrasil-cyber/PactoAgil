@@ -6,9 +6,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    // Autenticação
+    // Autenticação com suporte a Token Bearer ou Cookies
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
+    const { data: { user } } = token 
+      ? await supabase.auth.getUser(token) 
+      : await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
