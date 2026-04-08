@@ -1,40 +1,49 @@
-import { PrismaClient as PrismaClientEdge } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
-// Contorno DEFINITIVO para o bug do Turbopack no Next.js (forçando o Edge runtime):
-// Ao invés de usar o '@prisma/client' que o Next.js intercepta,
-// buscamos diretamente no pacote oculto .prisma gerado pelo CLI.
-let PrismaClient: typeof PrismaClientEdge;
-if (typeof window === 'undefined') {
-  PrismaClient = require('.prisma/client').PrismaClient;
-} else {
-  PrismaClient = PrismaClientEdge; // fallback no edge/browser (apesar de sabermos que falha, mas evita crashes sintáticos)
-}
+/**
+ * Singleton do Prisma Client com Driver Adapter (pg).
+ * Esta configuração é ideal para ambientes Serverless/Edge do Next.js 15,
+ * pois utiliza o engine WASM (Rust-free) e evita problemas com binários nativos.
+ */
 
 const prismaClientSingleton = () => {
+  const connectionString = process.env.DATABASE_URL;
+  
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not defined');
+  }
+
+  // Configuração do Pool do Postgres
+  const pool = new pg.Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
+
   return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  })
+  });
 }
 
 declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>
 }
 
-/**
- * Proxied Prisma Client
- * This prevents the PrismaClient from initializing during the 'next build' process
- * where DATABASE_URL might be missing or the environment is not ready for a connection.
- * It only initializes globalThis.prisma on the first actual property access.
- */
-const prisma = new Proxy({} as ReturnType<typeof prismaClientSingleton>, {
-  get: (target, prop) => {
-    if (prop === 'then') return undefined; // Avoid issues with async resolution if proxy is awaited
-    
-    if (!globalThis.prisma) {
-      globalThis.prisma = prismaClientSingleton()
-    }
-    return (globalThis.prisma as any)[prop]
-  }
-})
+// Persistência da instância para gerenciar hot-reload em desenvolvimento
+const client = globalThis.prisma ?? prismaClientSingleton();
 
-export default prisma
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prisma = client;
+}
+
+/**
+ * Proxied Prisma Client para segurança durante o build.
+ */
+const prisma = new Proxy(client, {
+  get: (target, prop) => {
+    if (prop === 'then') return undefined;
+    return (client as any)[prop];
+  }
+});
+
+export default prisma;
