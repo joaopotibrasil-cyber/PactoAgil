@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           .single();
 
         if (perfil) {
-          // Buscar empresa separadamente para evitar ambiguidade de FK no PostgREST
+          // Buscar empresa e assinatura em queries separadas para evitar 400 do PostgREST
           const empresaId = perfil.empresaId;
           let empresaNome = "Sem empresa";
           let logoUrl: string | undefined;
@@ -75,9 +75,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           let tipoPlano = "SEM PLANO";
 
           if (empresaId) {
+            // Query 1: dados básicos da Empresa
             const { data: empresa } = await supabase
               .from("Empresa")
-              .select(`nome, logoUrl, corPrimaria, Assinatura (tipoPlano)`)
+              .select(`nome, logoUrl, corPrimaria`)
               .eq("id", empresaId)
               .single();
 
@@ -85,10 +86,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               empresaNome = empresa.nome || "Sem empresa";
               logoUrl = empresa.logoUrl || undefined;
               corPrimaria = empresa.corPrimaria || undefined;
-              const assinatura = empresa.Assinatura
-                ? (Array.isArray(empresa.Assinatura) ? empresa.Assinatura[0] : empresa.Assinatura)
-                : null;
-              tipoPlano = assinatura?.tipoPlano || "SEM PLANO";
+            }
+
+            // Query 2: Assinatura (tabela separada para evitar join problemático)
+            const { data: assinatura } = await supabase
+              .from("Assinatura")
+              .select(`tipoPlano`)
+              .eq("empresaId", empresaId)
+              .single();
+
+            if (assinatura) {
+              tipoPlano = assinatura.tipoPlano || "SEM PLANO";
             }
           }
 
@@ -102,6 +110,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             corPrimaria,
           });
         }
+
 
       } catch (err) {
         console.error("[DashboardLayout] Erro ao buscar perfil:", err);

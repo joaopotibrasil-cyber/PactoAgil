@@ -7,9 +7,13 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: Request) {
   try {
     // Autenticação com suporte a Token Bearer ou Cookies
+    // Valida o token para evitar strings "undefined"/"null" enviadas pelo cliente
     const supabase = await createClient();
     const authHeader = req.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken.length > 20
+      ? rawToken
+      : null;
     
     const { data: { user } } = token 
       ? await supabase.auth.getUser(token) 

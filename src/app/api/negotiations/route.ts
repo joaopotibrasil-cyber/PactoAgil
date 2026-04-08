@@ -8,11 +8,14 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken.length > 20
+      ? rawToken : null;
     
     const { data: { user } } = token 
       ? await supabase.auth.getUser(token) 
       : await supabase.auth.getUser();
+
 
     if (!user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
@@ -69,11 +72,14 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const rawToken2 = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = rawToken2 && rawToken2 !== 'undefined' && rawToken2 !== 'null' && rawToken2.length > 20
+      ? rawToken2 : null;
     
     const { data: { user } } = token 
       ? await supabase.auth.getUser(token) 
       : await supabase.auth.getUser();
+
 
     if (!user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
@@ -116,11 +122,14 @@ export async function DELETE(request: Request) {
   try {
     const supabase = await createClient();
     const authHeader = request.headers.get('Authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const rawToken3 = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = rawToken3 && rawToken3 !== 'undefined' && rawToken3 !== 'null' && rawToken3.length > 20
+      ? rawToken3 : null;
     
     const { data: { user } } = token 
       ? await supabase.auth.getUser(token) 
       : await supabase.auth.getUser();
+
 
     if (!user) {
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
