@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useAuthToken } from "@/hooks/useAuthToken";
+
 import { 
 
   Building2, 
@@ -39,6 +40,8 @@ function NegociacoesContent() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const filtro = searchParams.get("filtro") ?? "total";
+  const { getAuthHeaders } = useAuthToken();
+
 
   useEffect(() => {
     fetchNegotiations();
@@ -47,11 +50,8 @@ function NegociacoesContent() {
   const fetchNegotiations = async () => {
     try {
       setLoading(true);
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/negotiations", {
-        headers: { "Authorization": `Bearer ${session?.access_token}` }
-      });
+      const authHeaders = await getAuthHeaders();
+      const res = await fetch("/api/negotiations", { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setNegotiations(data);
@@ -64,15 +64,15 @@ function NegociacoesContent() {
   };
 
 
+
   const handleDelete = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir esta negociação?")) return;
     
     try {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders = await getAuthHeaders();
       const res = await fetch(`/api/negotiations?id=${id}`, {
         method: "DELETE",
-        headers: { "Authorization": `Bearer ${session?.access_token}` }
+        headers: authHeaders,
       });
       if (res.ok) {
         setNegotiations(negotiations.filter(n => n.id !== id));

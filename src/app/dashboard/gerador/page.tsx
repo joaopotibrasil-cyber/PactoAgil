@@ -34,7 +34,8 @@ import {
 } from "lucide-react";
 import { useAsyncStates } from "@/lib/hooks";
 import React from 'react';
-import { createClient } from "@/lib/supabase/client";
+import { useAuthToken } from "@/hooks/useAuthToken";
+
 
 // Importações estáticas para evitar "Unexpected token export" no agrupamento cliente
 import * as mammoth from "mammoth";
@@ -103,16 +104,16 @@ function GeradorContent() {
   const [negotiationId, setNegotiationId] = useState<string | null>(null);
   const [editingField, setEditingField] = useState<ExtractedField | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { getAuthHeaders } = useAuthToken();
 
-    // --- OPERAÇÕES ASSÍNCRONAS CONSOLIDADAS ---
+
   const { states, execute, isLoading: isAnyLoading } = useAsyncStates({
     load: async (id: string) => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const authHeaders = await getAuthHeaders();
       const res = await fetch(`/api/negotiations?id=${id}`, {
-        headers: { "Authorization": `Bearer ${session?.access_token}` }
+        headers: authHeaders
       });
+
       if (!res.ok) throw new Error("Erro ao carregar");
       const data = await res.json();
       setNegotiationId(data.id);
@@ -123,17 +124,17 @@ function GeradorContent() {
     },
     analyze: async (content: string) => {
       if (!content) return;
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders = await getAuthHeaders();
 
       const response = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`
+          ...authHeaders
         },
         body: JSON.stringify({ documentContent: content, scenario }),
       });
+
       const data = await response.json();
       if (data.fields) {
         setExtractedFields(data.fields.map((f: any) => ({ 
@@ -145,15 +146,15 @@ function GeradorContent() {
       return data;
     },
     generate: async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders = await getAuthHeaders();
 
       const response = await fetch("/api/ai/generate", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`
+          ...authHeaders
         },
+
         body: JSON.stringify({
           scenario,
           categories,
@@ -167,15 +168,15 @@ function GeradorContent() {
       return data;
     },
     save: async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      const authHeaders = await getAuthHeaders();
 
       const response = await fetch("/api/negotiations", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`
+          ...authHeaders
         },
+
         body: JSON.stringify({
           id: negotiationId,
           titulo: "Negociação - " + new Date().toLocaleDateString("pt-BR"),

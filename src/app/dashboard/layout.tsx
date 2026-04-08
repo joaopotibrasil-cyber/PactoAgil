@@ -18,7 +18,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
-import { createClient } from "@/lib/supabase/client";
+
 
 const navItems = [
   { href: "/dashboard", label: "Painel de Controle", icon: LayoutDashboard },
@@ -48,72 +48,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const supabase = createClient();
-        
-        // Busca paralela: Usuário e Perfil
-        // Nota: Precisamos do user.id para o perfil, mas o getUser() no client 
-        // é rápido pois busca do cache se disponível. 
-        // No entanto, para RSC seria ainda melhor. No Client, garantimos o Promise.all
-        // para quaisquer outras buscas relacionadas.
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        // Usa a API route server-side para buscar o perfil
+        // evitando queries diretas do client SDK que falham com 400
+        // quando os cookies HTTP-only não estão acessíveis no browser
+        const res = await fetch('/api/profile', { credentials: 'include' });
+        if (!res.ok) return;
 
-        const { data: perfil } = await supabase
-          .from("Perfil")
-          .select(`
-            nomeCompleto, email, role, empresaId
-          `)
-          .eq("userId", user.id)
-          .single();
-
-        if (perfil) {
-          // Buscar empresa e assinatura em queries separadas para evitar 400 do PostgREST
-          const empresaId = perfil.empresaId;
-          let empresaNome = "Sem empresa";
-          let logoUrl: string | undefined;
-          let corPrimaria: string | undefined;
-          let tipoPlano = "SEM PLANO";
-
-          if (empresaId) {
-            // Query 1: dados básicos da Empresa
-            const { data: empresa } = await supabase
-              .from("Empresa")
-              .select(`nome, logoUrl, corPrimaria`)
-              .eq("id", empresaId)
-              .single();
-
-            if (empresa) {
-              empresaNome = empresa.nome || "Sem empresa";
-              logoUrl = empresa.logoUrl || undefined;
-              corPrimaria = empresa.corPrimaria || undefined;
-            }
-
-            // Query 2: Assinatura (tabela separada para evitar join problemático)
-            const { data: assinatura } = await supabase
-              .from("Assinatura")
-              .select(`tipoPlano`)
-              .eq("empresaId", empresaId)
-              .single();
-
-            if (assinatura) {
-              tipoPlano = assinatura.tipoPlano || "SEM PLANO";
-            }
-          }
-
-          setUserProfile({
-            nomeCompleto: perfil.nomeCompleto || user.email?.split("@")[0] || "Usuário",
-            email: perfil.email || user.email || "",
-            role: perfil.role || "USER",
-            empresaNome,
-            plano: tipoPlano,
-            logoUrl,
-            corPrimaria,
-          });
-        }
-
-
+        const data = await res.json();
+        setUserProfile({
+          nomeCompleto: data.nomeCompleto,
+          email: data.email,
+          role: data.role,
+          empresaNome: data.empresaNome,
+          plano: data.plano,
+          logoUrl: data.logoUrl || undefined,
+          corPrimaria: data.corPrimaria || undefined,
+        });
       } catch (err) {
-        console.error("[DashboardLayout] Erro ao buscar perfil:", err);
+        console.error('[DashboardLayout] Erro ao buscar perfil:', err);
       }
     };
 
