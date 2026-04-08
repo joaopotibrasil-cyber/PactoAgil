@@ -49,15 +49,33 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
       return user.id;
     }
 
+    if (sessionError) {
+      console.warn('[requireAuth] Sessão via cookie falhou:', sessionError.message);
+    }
+
     // 2. Fallback: Tentar via Header Authorization (Bearer Token)
     const token = extractBearerToken(request);
+    
     if (token) {
-      const adminClient = createAdminClient();
-      const { data: { user: tokenUser }, error: tokenError } = await adminClient.auth.getUser(token);
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       
-      if (tokenUser && !tokenError) {
-        return tokenUser.id;
+      if (!serviceKey) {
+        console.error('[requireAuth] CRÍTICO: SUPABASE_SERVICE_ROLE_KEY não configurada no servidor.');
+      } else {
+        const adminClient = createAdminClient();
+        const { data: { user: tokenUser }, error: tokenError } = await adminClient.auth.getUser(token);
+        
+        if (tokenUser && !tokenError) {
+          console.log('[requireAuth] Autenticação via Bearer Token bem-sucedida para:', tokenUser.id);
+          return tokenUser.id;
+        }
+        
+        if (tokenError) {
+          console.warn('[requireAuth] Falha ao validar Bearer Token:', tokenError.message);
+        }
       }
+    } else {
+      console.warn('[requireAuth] Nenhum token encontrado no cabeçalho Authorization.');
     }
     
     // Se ambos falharem
@@ -73,4 +91,5 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
     );
   }
 }
+
 

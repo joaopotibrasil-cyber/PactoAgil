@@ -1,10 +1,10 @@
 import { useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { AUTH_KEYS } from '@/lib/auth-sync';
 
 /**
  * Hook que obtém o access_token válido da sessão atual diretamente do 
- * Supabase Browser Client. O Supabase Browser Client cuida de refresh
- * automáticos e mantém o token atualizado.
+ * Supabase Browser Client ou fallbacks para LocalStorage.
  */
 export function useAuthToken() {
   const tokenRef = useRef<{ value: string; expiresAt: number } | null>(null);
@@ -13,30 +13,36 @@ export function useAuthToken() {
   const getToken = useCallback(async (): Promise<string | null> => {
     const now = Date.now();
 
-    // Retorna o token em cache se ainda houver 1 minuto de margem validade
+    // 1. Retorna o token em cache se ainda houver 1 minuto de margem validade
     if (tokenRef.current && tokenRef.current.expiresAt > (now + 60000)) {
       return tokenRef.current.value;
     }
 
     try {
+      // 2. Tentar obter via Supabase SDK (ideal: gerencia refresh)
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (error) {
-        console.warn('[useAuthToken] Erro do Supabase auth:', error.message);
-        return null;
+      if (!error && session?.access_token) {
+        tokenRef.current = {
+          value: session.access_token,
+          expiresAt: session.expires_at ? session.expires_at * 1000 : now + 3600 * 1000,
+        };
+        return session.access_token;
       }
 
-      if (!session?.access_token) {
-        return null; // Usuário não autenticado
+      // 3. Fallback: LocalStorage (persiste mesmo se o SDK perder o estado)
+      const storedToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+      if (storedToken) {
+        console.log('[useAuthToken] Recuperando token via LocalStorage fallback.');
+        // Não temos o tempo de expiração exato aqui, assumimos 30 min para segurança
+        tokenRef.current = {
+          value: storedToken,
+          expiresAt: now + 30 * 60 * 1000, 
+        };
+        return storedToken;
       }
 
-      tokenRef.current = {
-        value: session.access_token,
-        // session.expires_at é em segundos do epoch, converter para ms
-        expiresAt: session.expires_at ? session.expires_at * 1000 : now + 3600 * 1000,
-      };
-
-      return session.access_token;
+      return null;
     } catch (err) {
       console.error('[useAuthToken] Erro inesperado capturando token:', err);
       return null;
