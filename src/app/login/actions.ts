@@ -45,7 +45,7 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
-  redirect(ROUTES.PAGES.DASHBOARD.ROOT)
+  return { success: true }
 }
 
 // Schema para plano válido

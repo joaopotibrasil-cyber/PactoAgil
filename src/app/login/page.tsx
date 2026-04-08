@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { login, signup } from "./actions";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ROUTES } from "@/constants/routes";
@@ -13,6 +13,7 @@ function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const plan = searchParams.get("plan");
 
   async function handleAction(formData: FormData) {
@@ -30,6 +31,17 @@ function LoginContent() {
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+    } else if (result?.success) {
+      try {
+        const meRes = await fetch('/api/me');
+        if (meRes.ok) {
+          const userData = await meRes.json();
+          localStorage.setItem('pacto_user_state', JSON.stringify(userData));
+        }
+      } catch (err) {
+        console.error("Erro ao gravar storage state no login:", err);
+      }
+      router.push(ROUTES.PAGES.DASHBOARD.ROOT);
     }
   }
 
