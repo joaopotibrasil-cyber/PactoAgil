@@ -67,24 +67,37 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
     }
 
     // 3. Fallback: Tentar via Header Authorization (Bearer Token)
-    const token = extractBearerToken(request);
-
+    let token = extractBearerToken(request);
+    
     if (token) {
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-      if (!serviceKey) {
-        console.error('[requireAuth] CRÍTICO: SUPABASE_SERVICE_ROLE_KEY não configurada.');
+      token = token.trim();
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !anonKey || token === 'null' || token === 'undefined' || token === '') {
+        console.warn('[requireAuth] Token inválido ou variáveis do Supabase não configuradas no servidor.');
       } else {
-        const adminClient = createAdminClient();
-        const { data: { user: tokenUser }, error: tokenError } = await adminClient.auth.getUser(token);
+        try {
+          const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'apikey': anonKey
+            }
+          });
 
-        if (tokenUser && !tokenError) {
-          console.log('[requireAuth] Autenticado via Bearer Token:', tokenUser.id);
-          return tokenUser.id;
-        }
-
-        if (tokenError) {
-          console.warn('[requireAuth] Falha ao validar Bearer Token:', tokenError.message);
+          if (res.ok) {
+            const tokenUser = await res.json();
+            if (tokenUser && tokenUser.id) {
+              console.log('[requireAuth] Autenticado via Bearer Token (Fetch):', tokenUser.id);
+              return tokenUser.id;
+            }
+          } else {
+            const errorData = await res.text();
+            console.warn(`[requireAuth] Falha ao chamar GET /user. Status: ${res.status}`, errorData);
+          }
+        } catch (fetchErr) {
+          console.error('[requireAuth] Exceção durante validação de Bearer via API:', fetchErr);
         }
       }
     }

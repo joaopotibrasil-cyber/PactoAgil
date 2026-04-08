@@ -34,18 +34,25 @@ export async function login(formData: FormData) {
 
   const supabase = await createClient()
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
 
   if (error) {
     console.error('Login error:', error.message)
-    // Em uma aplicação real, retornaríamos o erro para a UI
     return { error: error.message }
   }
 
-  return { success: true }
+  if (!data.session) {
+    console.error('Login error: No session returned')
+    return { error: 'Erro ao criar sessão. Tente novamente.' }
+  }
+
+  console.log('[login] Sessão criada com sucesso para:', data.user?.id)
+  console.log('[login] Access token definido:', !!data.session.access_token)
+
+  return { success: true, user: data.user }
 }
 
 // Schema para plano válido
