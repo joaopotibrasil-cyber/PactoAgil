@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = requireAuth(request);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = requireAuth(request);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const authResult = requireAuth(request);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 

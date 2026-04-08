@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
  * que tem acesso às tabelas via RLS baseada no user_id do middleware).
  */
 export async function GET(request: NextRequest) {
-  const authResult = requireAuth(request);
+  const authResult = await requireAuth();
   
   if (authResult instanceof NextResponse) {
     return authResult; // 401

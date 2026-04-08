@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
-    const authResult = requireAuth(req);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 

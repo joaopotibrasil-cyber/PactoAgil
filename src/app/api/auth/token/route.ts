@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
  * O token real (JWT) agora é gerenciado via middleware + x-user-id header.
  */
 export async function GET(request: NextRequest) {
-  const result = requireAuth(request);
+  const result = await requireAuth();
   
   if (result instanceof NextResponse) {
     return result; // 401

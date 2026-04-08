@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Verificar autenticação
-    const authResult = requireAuth(req);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userIdMiddleware = authResult;
 

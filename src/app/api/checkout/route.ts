@@ -103,7 +103,7 @@ async function createCheckoutSession(userId: string, email: string, planKey: str
 
 export async function POST(req: NextRequest) {
   try {
-    const authResult = requireAuth(req);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
       return redirect(`${ROUTES.PAGES.PRICING}?error=invalid_plan`);
     }
 
-    const authResult = requireAuth(req);
+    const authResult = await requireAuth();
     if (authResult instanceof NextResponse) {
       // Se não estiver logado, redireciona para login (comportamento original do GET)
       return redirect(`${ROUTES.PAGES.AUTH.LOGIN}?plan=${planKeyParam}&mode=signup`);
