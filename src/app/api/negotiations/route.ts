@@ -1,32 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import prisma from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-helpers";
+
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const authResult = requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
+
     const supabase = await createClient();
-    const authHeader = request.headers.get('Authorization');
-    const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const token = rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken.length > 20
-      ? rawToken : null;
-    
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token) 
-      : await supabase.auth.getUser();
-
-
-    if (!user) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
 
     // Buscar a empresa vinculada ao usuário
     const { data: empresa } = await supabase
       .from("Empresa")
       .select("id")
-      .eq("userId", user.id) // Corrigido: o campo no schema Prisma/Supabase é userId
+      .eq("userId", userId) // Corrigido: usando o userId do middleware
       .single();
+
 
 
     if (!empresa) {
@@ -68,28 +62,20 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const authResult = requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
+
     const supabase = await createClient();
-    const authHeader = request.headers.get('Authorization');
-    const rawToken2 = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const token = rawToken2 && rawToken2 !== 'undefined' && rawToken2 !== 'null' && rawToken2.length > 20
-      ? rawToken2 : null;
-    
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token) 
-      : await supabase.auth.getUser();
-
-
-    if (!user) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
 
     const { data: empresa } = await supabase
       .from("Empresa")
       .select("id")
-      .eq("userId", user.id) // Corrigido aqui também
+      .eq("userId", userId) // Corrigido aqui também
       .single();
+
 
 
     if (!empresa) {
@@ -118,28 +104,20 @@ export async function GET(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    const authResult = requireAuth(request);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
+
     const supabase = await createClient();
-    const authHeader = request.headers.get('Authorization');
-    const rawToken3 = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const token = rawToken3 && rawToken3 !== 'undefined' && rawToken3 !== 'null' && rawToken3.length > 20
-      ? rawToken3 : null;
-    
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token) 
-      : await supabase.auth.getUser();
-
-
-    if (!user) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
-    }
 
     const { data: empresa } = await supabase
       .from("Empresa")
       .select("id")
-      .eq("userId", user.id) // E aqui
+      .eq("userId", userId) // E aqui
       .single();
+
 
 
     if (!empresa) {

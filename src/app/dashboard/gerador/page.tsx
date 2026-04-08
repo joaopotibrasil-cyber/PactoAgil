@@ -35,6 +35,7 @@ import {
 import { useAsyncStates } from "@/lib/hooks";
 import React from 'react';
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { ROUTES } from "@/constants/routes";
 
 
 // Importações estáticas para evitar "Unexpected token export" no agrupamento cliente
@@ -110,7 +111,7 @@ function GeradorContent() {
   const { states, execute, isLoading: isAnyLoading } = useAsyncStates({
     load: async (id: string) => {
       const authHeaders = await getAuthHeaders();
-      const res = await fetch(`/api/negotiations?id=${id}`, {
+      const res = await fetch(`${ROUTES.API.NEGOTIATIONS}?id=${id}`, {
         headers: authHeaders
       });
 
@@ -126,7 +127,7 @@ function GeradorContent() {
       if (!content) return;
       const authHeaders = await getAuthHeaders();
 
-      const response = await fetch("/api/ai/analyze", {
+      const response = await fetch(ROUTES.API.AI.ANALYZE, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -148,7 +149,7 @@ function GeradorContent() {
     generate: async () => {
       const authHeaders = await getAuthHeaders();
 
-      const response = await fetch("/api/ai/generate", {
+      const response = await fetch(ROUTES.API.AI.GENERATE, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -170,7 +171,7 @@ function GeradorContent() {
     save: async () => {
       const authHeaders = await getAuthHeaders();
 
-      const response = await fetch("/api/negotiations", {
+      const response = await fetch(ROUTES.API.NEGOTIATIONS, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -697,7 +698,7 @@ function GeradorContent() {
               
               <div className="relative z-20 flex justify-start mb-4">
                 <Link 
-                  href="/dashboard"
+                  href={ROUTES.PAGES.DASHBOARD.ROOT}
                   className="group inline-flex items-center gap-2 text-xs font-bold text-foreground/40 hover:text-accent transition-colors"
                 >
                   <div className="p-2 rounded-full bg-surface-dim border border-border-soft group-hover:border-accent/40 group-hover:bg-accent/5 transition-all">

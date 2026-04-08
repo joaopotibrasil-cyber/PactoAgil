@@ -1,10 +1,13 @@
 import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { stripe } from '@/lib/billing/stripe';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { redirect } from 'next/navigation';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { z } from 'zod';
+import { ROUTES } from '@/constants/routes';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,8 +91,8 @@ async function createCheckoutSession(userId: string, email: string, planKey: str
     customer: stripeCustomerId,
     line_items: [{ price: priceId, quantity: 1 }],
     mode: 'subscription',
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.PAGES.CHECKOUT.SUCCESS}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.PAGES.PRICING}`,
     subscription_data: {
       metadata: { userId },
     },
@@ -98,17 +101,14 @@ async function createCheckoutSession(userId: string, email: string, planKey: str
   return session.url;
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+    const authResult = requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
 
     // Rate limiting por userId
-    const rateLimitResult = rateLimit(`checkout:${user.id}`, RATE_LIMITS.checkout);
+    const rateLimitResult = rateLimit(`checkout:${userId}`, RATE_LIMITS.checkout);
     if (!rateLimitResult.success) {
       return new NextResponse('Too many requests', { status: 429 });
     }
@@ -120,7 +120,11 @@ export async function POST(req: Request) {
       return new NextResponse('Invalid plan key', { status: 400 });
     }
 
-    const url = await createCheckoutSession(user.id, user.email!, body.planKey);
+    // Obter o email do usuário do header (injetado pelo middleware)
+    const email = req.headers.get('x-user-email') || '';
+
+    const url = await createCheckoutSession(userId, email, body.planKey);
+
 
     return NextResponse.json({ url });
   } catch (error: any) {
@@ -129,43 +133,45 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const planKeyParam = searchParams.get('planKey');
 
     if (!planKeyParam) {
-      return redirect('/pricing');
+      return redirect(ROUTES.PAGES.PRICING);
     }
 
     // Validar plano
     const validation = planKeySchema.safeParse(planKeyParam);
     if (!validation.success) {
-      return redirect('/pricing?error=invalid_plan');
+      return redirect(`${ROUTES.PAGES.PRICING}?error=invalid_plan`);
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return redirect(`/login?plan=${planKeyParam}&mode=signup`);
+    const authResult = requireAuth(req);
+    if (authResult instanceof NextResponse) {
+      // Se não estiver logado, redireciona para login (comportamento original do GET)
+      return redirect(`${ROUTES.PAGES.AUTH.LOGIN}?plan=${planKeyParam}&mode=signup`);
     }
+    const userId = authResult;
+    const email = req.headers.get('x-user-email') || '';
 
     // Rate limiting por userId
-    const rateLimitResult = rateLimit(`checkout:${user.id}`, RATE_LIMITS.checkout);
+    const rateLimitResult = rateLimit(`checkout:${userId}`, RATE_LIMITS.checkout);
     if (!rateLimitResult.success) {
-      return redirect('/pricing?error=rate_limited');
+      return redirect(`${ROUTES.PAGES.PRICING}?error=rate_limited`);
     }
 
-    const url = await createCheckoutSession(user.id, user.email!, planKeyParam);
+    const url = await createCheckoutSession(userId, email, planKeyParam);
+
 
     if (url) {
       return redirect(url);
     }
 
-    return redirect('/pricing');
+    return redirect(ROUTES.PAGES.PRICING);
   } catch (error: any) {
     console.error('[STRIPE_CHECKOUT_GET_ERROR]', error);
-    return redirect('/pricing?error=checkout_failed');
+    return redirect(`${ROUTES.PAGES.PRICING}?error=checkout_failed`);
   }
 }

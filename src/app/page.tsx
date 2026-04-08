@@ -10,6 +10,7 @@ import { Protocol } from "@/components/home/Protocol";
 import { Pricing } from "@/components/home/Pricing";
 import { Footer } from "@/components/home/Footer";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { ROUTES } from "@/constants/routes";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -46,7 +47,7 @@ export default function Home() {
         }`}
       >
         <BrandLogo 
-          href="/" 
+          href={ROUTES.PAGES.HOME} 
           compact 
           className="shrink-0"
           imageClassName={`transition-all duration-500 ${
@@ -60,7 +61,7 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-3">
           <a
-            href="/login"
+            href={ROUTES.PAGES.AUTH.LOGIN}
             className={`magnetic text-sm font-semibold transition-all duration-300 px-4 py-2 hidden sm:block ${
               isScrolled ? "text-foreground" : "text-white/90 drop-shadow-md hover:text-white"
             }`}
@@ -109,7 +110,7 @@ export default function Home() {
             
             <div className="hero-in pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
               <a
-                href="/login"
+                href={ROUTES.PAGES.AUTH.LOGIN}
                 className="magnetic hover-lift inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 font-bold text-base w-full sm:w-auto neo-ring"
               >
                 Inicie uma Negociação

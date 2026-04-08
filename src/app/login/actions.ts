@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit'
 import { z } from 'zod'
+import { ROUTES } from '@/constants/routes'
 
 // Schemas de validação
 const emailSchema = z.string().email('E-mail inválido').min(5).max(254)
@@ -44,7 +45,7 @@ export async function login(formData: FormData) {
     return { error: error.message }
   }
 
-  redirect('/dashboard')
+  redirect(ROUTES.PAGES.DASHBOARD.ROOT)
 }
 
 // Schema para plano válido
@@ -118,7 +119,7 @@ export async function signup(formData: FormData) {
       // Se houver plano, redireciona direto para o checkout (com bypass de login manual)
       if (plan && plan !== "") {
         // Redireciona para o checkout passando o plano via GET
-        return redirect(`/api/checkout?planKey=${plan}`);
+        return redirect(`${ROUTES.API.CHECKOUT.ROOT}?planKey=${plan}`);
       }
 
     } catch (dbError) {
@@ -127,5 +128,5 @@ export async function signup(formData: FormData) {
   }
 
   // Comportamento padrão sem plano: Aviso de e-mail (Legacy)
-  redirect('/login?message=Sucesso! Verifique seu e-mail para ativar sua conta.')
+  redirect(`${ROUTES.PAGES.AUTH.LOGIN}?message=Sucesso! Verifique seu e-mail para ativar sua conta.`)
 }

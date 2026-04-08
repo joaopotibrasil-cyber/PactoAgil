@@ -7,6 +7,7 @@ import { Loader2, ArrowRight, ShieldCheck, Building2, User2, Search, CheckCircle
 import Link from "next/link";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { formatCNPJ } from "@/lib/validation/schemas";
+import { ROUTES } from "@/constants/routes";
 
 import { useDebounce, useAsyncState } from "@/lib/hooks";
 
@@ -43,7 +44,7 @@ function RegisterForm() {
         if (domainName.length > 2) {
           setIsSearching(true);
           try {
-            const res = await fetch(`/api/companies/search?q=${domainName}`);
+            const res = await fetch(`${ROUTES.API.COMPANIES.SEARCH}?q=${domainName}`);
             if (res.ok) {
               const data = await res.json();
               setSuggestions(data);
@@ -295,9 +296,9 @@ export default function RegisterPage() {
 
       {/* Header fixo — FORA do card */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 py-6 pointer-events-none">
-        <BrandLogo href="/" className="opacity-70 grayscale hover:grayscale-0 transition-all pointer-events-auto" />
+        <BrandLogo href={ROUTES.PAGES.HOME} className="opacity-70 grayscale hover:grayscale-0 transition-all pointer-events-auto" />
         <Link
-          href="/"
+          href={ROUTES.PAGES.HOME}
           className="text-[0.65rem] font-mono tracking-widest text-foreground/40 hover:text-accent flex items-center gap-2 group transition-all pointer-events-auto"
         >
           <ArrowRight className="w-3 h-3 rotate-180 group-hover:-translate-x-1 transition-transform" />

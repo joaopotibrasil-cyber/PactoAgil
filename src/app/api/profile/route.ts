@@ -1,35 +1,40 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/profile
- * Retorna os dados do perfil do usuário autenticado (server-side).
- * Resolve o problema de RLS bloqueando queries diretas do client SDK
- * quando o token não está disponível no browser.
+ * Retorna os dados do perfil do usuário autenticado.
+ * 
+ * A autenticação é feita via x-user-id header injetado pelo middleware.
+ * O server Supabase client é usado apenas para queries de dados (com a anon key
+ * que tem acesso às tabelas via RLS baseada no user_id do middleware).
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const authResult = requireAuth(request);
+  
+  if (authResult instanceof NextResponse) {
+    return authResult; // 401
+  }
+
+  const userId = authResult;
+
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
-    }
-
-    // Buscar perfil com dados básicos
+    // 1. Buscar perfil do usuário logado
     const { data: perfil, error: perfilError } = await supabase
       .from('Perfil')
-      .select('nomeCompleto, email, role, empresaId')
-      .eq('userId', user.id)
+      .select('nomeCompleto, email, role, empresaId, avatarUrl')
+      .eq('userId', userId)
       .single();
 
     if (perfilError || !perfil) {
-      // Se não tem perfil, retorna dados mínimos do auth
       return NextResponse.json({
-        nomeCompleto: user.email?.split('@')[0] || 'Usuário',
-        email: user.email || '',
+        nomeCompleto: 'Usuário',
+        email: request.headers.get('x-user-email') || '',
         role: 'USER',
         empresaNome: 'Sem empresa',
         plano: 'SEM PLANO',
@@ -38,48 +43,80 @@ export async function GET() {
       });
     }
 
-    let empresaNome = 'Sem empresa';
-    let logoUrl: string | null = null;
-    let corPrimaria: string | null = null;
-    let tipoPlano = 'SEM PLANO';
+    // Initialize objects
+    let empresaData = null;
+    let assinaturaData = null;
+    let membrosData: any[] = [];
 
+    // 2. Se tiver empresa, buscar detalhes e membros
     if (perfil.empresaId) {
-      // Buscar empresa
+      // Buscar dados da Empresa
       const { data: empresa } = await supabase
         .from('Empresa')
-        .select('nome, logoUrl, corPrimaria')
+        .select('*')
         .eq('id', perfil.empresaId)
         .single();
 
       if (empresa) {
-        empresaNome = empresa.nome || 'Sem empresa';
-        logoUrl = empresa.logoUrl || null;
-        corPrimaria = empresa.corPrimaria || null;
+        empresaData = {
+          id: empresa.id,
+          nome: empresa.nome,
+          cnpj: empresa.cnpj,
+          funcionalidade: empresa.funcionalidade,
+          logoUrl: empresa.logoUrl,
+          corPrimaria: empresa.corPrimaria,
+        };
       }
 
-      // Buscar assinatura separadamente
+      // Buscar Assinatura
       const { data: assinatura } = await supabase
         .from('Assinatura')
-        .select('tipoPlano')
+        .select('*')
         .eq('empresaId', perfil.empresaId)
         .single();
 
       if (assinatura) {
-        tipoPlano = assinatura.tipoPlano || 'SEM PLANO';
+        assinaturaData = {
+          tipoPlano: assinatura.tipoPlano,
+          status: assinatura.status,
+          fimPeriodoAtual: assinatura.fimPeriodoAtual,
+        };
+      }
+
+      // Buscar Membros da Equipe (outros perfis na mesma empresa)
+      const { data: membros } = await supabase
+        .from('Perfil')
+        .select('id, nomeCompleto, email, role, avatarUrl')
+        .eq('empresaId', perfil.empresaId);
+
+      if (membros) {
+        membrosData = membros;
       }
     }
 
     return NextResponse.json({
-      nomeCompleto: perfil.nomeCompleto || user.email?.split('@')[0] || 'Usuário',
-      email: perfil.email || user.email || '',
+      perfil: {
+        nomeCompleto: perfil.nomeCompleto,
+        email: perfil.email,
+        role: perfil.role,
+        avatarUrl: perfil.avatarUrl,
+      },
+      empresa: empresaData,
+      assinatura: assinaturaData,
+      membros: membrosData,
+      // Helper fields (backwards compatibility)
+      nomeCompleto: perfil.nomeCompleto || 'Usuário',
+      email: perfil.email || request.headers.get('x-user-email') || '',
       role: perfil.role || 'USER',
-      empresaNome,
-      plano: tipoPlano,
-      logoUrl,
-      corPrimaria,
+      empresaNome: empresaData?.nome || 'Sem empresa',
+      plano: assinaturaData?.tipoPlano || 'SEM PLANO',
+      logoUrl: empresaData?.logoUrl || null,
+      corPrimaria: empresaData?.corPrimaria || null,
     });
+
   } catch (err) {
     console.error('[PROFILE_ERROR]', err);
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
+

@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Building2, CreditCard, Palette, ShieldCheck, Users, Mail, Loader2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { ROUTES } from "@/constants/routes";
 
 type Tab = "entidade" | "marca" | "usuarios" | "plano";
 
@@ -57,62 +58,39 @@ export default function ConfiguracoesPage() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: perfil } = await supabase
-        .from("Perfil")
-        .select("nomeCompleto, email, role, empresaId")
-        .eq("userId", user.id)
-        .single();
-
-      if (!perfil || !perfil.empresaId) {
-        setLoading(false);
+      const res = await fetch(ROUTES.API.PROFILE.ROOT);
+      if (res.status === 401) {
+        window.location.href = ROUTES.PAGES.AUTH.LOGIN;
         return;
       }
+      
+      const data = await res.json();
+      if (!data.perfil) return;
 
-      const { data: empresa } = await supabase
-        .from("Empresa")
-        .select("nome, cnpj, funcionalidade, logoUrl, corPrimaria")
-        .eq("id", perfil.empresaId)
-        .single();
-
-      const { data: assinatura } = await supabase
-        .from("Assinatura")
-        .select("tipoPlano, status, fimPeriodoAtual")
-        .eq("empresaId", perfil.empresaId)
-        .single();
-
-      const { data: membros } = await supabase
-        .from("Perfil")
-        .select("id, nomeCompleto, email, role")
-        .eq("empresaId", perfil.empresaId);
-
-      const data: ProfileData = {
-        nomeCompleto: perfil.nomeCompleto || "",
-        email: perfil.email || user.email || "",
-        role: perfil.role || "USER",
-        empresaId: perfil.empresaId,
+      const profileData: ProfileData = {
+        nomeCompleto: data.perfil.nomeCompleto || "Usuário",
+        email: data.perfil.email || "",
+        role: data.perfil.role || "USER",
+        empresaId: data.empresa?.id || "",
         empresa: {
-          nome: empresa?.nome || "",
-          cnpj: empresa?.cnpj || "",
-          funcionalidade: empresa?.funcionalidade || "",
-          logoUrl: empresa?.logoUrl || null,
-          corPrimaria: empresa?.corPrimaria || "#006fee",
+          nome: data.empresa?.nome || "",
+          cnpj: data.empresa?.cnpj || "",
+          funcionalidade: data.empresa?.funcionalidade || "",
+          logoUrl: data.empresa?.logoUrl || null,
+          corPrimaria: data.empresa?.corPrimaria || "#006fee",
         },
-        assinatura: assinatura || null,
-        membros: membros || [],
+        assinatura: data.assinatura || null,
+        membros: data.membros || [],
       };
 
-      setProfile(data);
-      setRazaoSocial(data.empresa.nome);
-      setCnpj(data.empresa.cnpj);
-      setEndereco(data.empresa.funcionalidade);
-      setLogoUrl(data.empresa.logoUrl || null);
-      setCorPrimaria(data.empresa.corPrimaria || "#006fee");
+      setProfile(profileData);
+      setRazaoSocial(profileData.empresa.nome);
+      setCnpj(profileData.empresa.cnpj);
+      setEndereco(profileData.empresa.funcionalidade);
+      setLogoUrl(profileData.empresa.logoUrl || null);
+      setCorPrimaria(profileData.empresa.corPrimaria || "#006fee");
     } catch (err) {
-      console.error("[Configurações] Erro:", err);
+      console.error("[Configurações] Erro ao buscar perfil:", err);
     } finally {
       setLoading(false);
     }
@@ -125,16 +103,17 @@ export default function ConfiguracoesPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const supabase = createClient();
-      await supabase
-        .from("Empresa")
-        .update({ 
-          nome: razaoSocial, 
-          cnpj, 
+      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          razaoSocial,
+          cnpj,
           funcionalidade: endereco,
-          atualizadoEm: new Date().toISOString(),
-        })
-        .eq("id", profile.empresaId);
+        }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao salvar");
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -152,12 +131,13 @@ export default function ConfiguracoesPage() {
     
     setSaving(true);
     try {
+      // Para o upload de arquivo, ainda usamos o Supabase no cliente
+      // No entanto, o registro final no DB será feito via API para consistência
       const supabase = createClient();
       const fileExt = file.name.split('.').pop();
       const fileName = `${profile.empresaId}-${Math.random()}.${fileExt}`;
       const filePath = `logos/${fileName}`;
       
-      // Upload para o bucket 'branding'
       const { error: uploadError } = await supabase.storage
         .from('branding')
         .upload(filePath, file);
@@ -168,11 +148,14 @@ export default function ConfiguracoesPage() {
         .from('branding')
         .getPublicUrl(filePath);
         
-      // Atualizar no banco
-      await supabase
-        .from("Empresa")
-        .update({ logoUrl: publicUrl })
-        .eq("id", profile.empresaId);
+      // Atualizar no banco via nossa API (conforme planejado)
+      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ logoUrl: publicUrl }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao registrar logo");
         
       setLogoUrl(publicUrl);
       setSaved(true);
@@ -190,11 +173,13 @@ export default function ConfiguracoesPage() {
     setSaving(true);
     setSaved(false);
     try {
-      const supabase = createClient();
-      await supabase
-        .from("Empresa")
-        .update({ corPrimaria })
-        .eq("id", profile.empresaId);
+      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ corPrimaria }),
+      });
+
+      if (!res.ok) throw new Error("Erro ao salvar marca");
       
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -208,13 +193,14 @@ export default function ConfiguracoesPage() {
 
   const handlePortal = async () => {
     try {
-      const res = await fetch("/api/portal", { method: "POST", credentials: "include" });
-      if (res.status === 401) { window.location.href = "/login"; return; }
+      const res = await fetch(ROUTES.API.PORTAL, { method: "POST" });
+      if (res.status === 401) { window.location.href = ROUTES.PAGES.AUTH.LOGIN; return; }
       if (res.status === 400) { alert("Nenhuma assinatura ativa."); return; }
       const data = await res.json();
       if (data.url) window.location.href = data.url;
     } catch { alert("Erro ao acessar portal."); }
   };
+
 
   if (loading) {
     return (

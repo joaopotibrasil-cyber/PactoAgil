@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { ROUTES } from "@/constants/routes";
 import { useParams } from "next/navigation";
 import { ArrowLeft, FileClock, FileText, History } from "lucide-react";
 
@@ -25,7 +26,7 @@ export default function EmpresaDetalhePage() {
   return (
     <div className="space-y-7">
       <section className="section-shell p-6 md:p-8">
-        <Link href="/dashboard/negociacoes" className="inline-flex items-center gap-2 text-sm font-semibold hover:text-accent mb-4">
+        <Link href={ROUTES.PAGES.DASHBOARD.NEGOTIATIONS} className="inline-flex items-center gap-2 text-sm font-semibold hover:text-accent mb-4">
           <ArrowLeft className="h-4 w-4" />
           Voltar para negociacoes
         </Link>

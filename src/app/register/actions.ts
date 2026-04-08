@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { ROUTES } from '@/constants/routes';
 
 const registerSchema = z.object({
   fullName: z.string().min(3, 'Nome muito curto'),
@@ -124,11 +125,11 @@ export async function registerAction(formData: FormData) {
 
   if (planKey && planKey !== 'undefined') {
     console.log('[registerAction] Redirecionando para checkout:', planKey);
-    redirect(`/api/checkout?planKey=${planKey}`);
+    redirect(`${ROUTES.API.CHECKOUT.ROOT}?planKey=${planKey}`);
   }
 
   console.log('[registerAction] Redirecionando para dashboard normal.');
-  redirect('/dashboard');
+  redirect(ROUTES.PAGES.DASHBOARD.ROOT);
 }
 
 

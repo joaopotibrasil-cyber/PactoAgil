@@ -18,14 +18,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { ROUTES } from "@/constants/routes";
 
 
 const navItems = [
-  { href: "/dashboard", label: "Painel de Controle", icon: LayoutDashboard },
-  { href: "/dashboard/negociacoes", label: "Negociações", icon: Building2 },
-  { href: "/dashboard/gerador", label: "Gerador Inteligente", icon: WandSparkles },
-  { href: "/dashboard/members", label: "Minha Equipe", icon: Users },
-  { href: "/dashboard/configuracoes", label: "Configurações", icon: Settings },
+  { href: ROUTES.PAGES.DASHBOARD.ROOT, label: "Painel de Controle", icon: LayoutDashboard },
+  { href: ROUTES.PAGES.DASHBOARD.NEGOTIATIONS, label: "Negociações", icon: Building2 },
+  { href: ROUTES.PAGES.DASHBOARD.GENERATOR, label: "Gerador Inteligente", icon: WandSparkles },
+  { href: ROUTES.PAGES.DASHBOARD.MEMBERS, label: "Minha Equipe", icon: Users },
+  { href: ROUTES.PAGES.DASHBOARD.CONFIG, label: "Configurações", icon: Settings },
 ];
 
 interface UserProfile {
@@ -51,7 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         // Usa a API route server-side para buscar o perfil
         // evitando queries diretas do client SDK que falham com 400
         // quando os cookies HTTP-only não estão acessíveis no browser
-        const res = await fetch('/api/profile', { credentials: 'include' });
+        const res = await fetch(ROUTES.API.PROFILE.ROOT, { credentials: 'include' });
         if (!res.ok) return;
 
         const data = await res.json();
@@ -78,13 +79,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const handlePortal = async () => {
       try {
         setIsPortalLoading(true);
-        const response = await fetch("/api/portal", { 
+        const response = await fetch(ROUTES.API.PORTAL, { 
           method: "POST",
           credentials: "include",
         });
         
         if (response.status === 401) {
-          window.location.href = "/login";
+          window.location.href = ROUTES.PAGES.AUTH.LOGIN;
           return;
         }
         
@@ -111,7 +112,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <>
         <div className="px-6 py-6 border-b border-border-soft flex items-center justify-between">
           <div>
-            <BrandLogo href="/dashboard" src={userProfile?.logoUrl} />
+            <BrandLogo href={ROUTES.PAGES.DASHBOARD.ROOT} src={userProfile?.logoUrl} />
             <p className="mt-3 text-xs font-mono uppercase tracking-[0.14em] text-foreground/60">Workspace Sindical</p>
           </div>
           <button 
@@ -180,7 +181,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </button>
 
           <Link
-            href="/auth/signout"
+            href={ROUTES.PAGES.AUTH.SIGNOUT}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-surface border border-border-soft py-2.5 text-sm font-semibold hover:bg-surface-dim transition-colors"
           >
             <LogOut className="h-4 w-4" />
@@ -228,7 +229,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="lg:hidden px-4 py-4 border-b border-border-soft bg-surface/90 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between">
-          <BrandLogo compact href="/dashboard" src={userProfile?.logoUrl} />
+          <BrandLogo compact href={ROUTES.PAGES.DASHBOARD.ROOT} src={userProfile?.logoUrl} />
           <button 
             onClick={toggleMobileMenu}
             className="p-2 text-foreground/80 hover:text-accent hover:bg-surface-dim rounded-lg transition-colors"

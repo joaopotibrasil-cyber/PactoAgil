@@ -1,27 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getGroqCompletion } from '@/lib/ai/groq';
-import { createClient } from '@/lib/supabase/server';
+import { requireAuth } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // Autenticação com suporte a Token Bearer ou Cookies
-    // Valida o token para evitar strings "undefined"/"null" enviadas pelo cliente
-    const supabase = await createClient();
-    const authHeader = req.headers.get('Authorization');
-    const rawToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const token = rawToken && rawToken !== 'undefined' && rawToken !== 'null' && rawToken.length > 20
-      ? rawToken
-      : null;
-    
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token) 
-      : await supabase.auth.getUser();
+    const authResult = requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
 
-    if (!user) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-    }
 
     const { documentContent, scenario } = await req.json();
 

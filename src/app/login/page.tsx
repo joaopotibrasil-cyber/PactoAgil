@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { login, signup } from "./actions";
 import { BrandLogo } from "@/components/ui/BrandLogo";
+import { ROUTES } from "@/constants/routes";
 import { ArrowRight, Lock, CreditCard, Loader2 } from "lucide-react";
 
 function LoginContent() {
@@ -55,8 +56,8 @@ function LoginContent() {
             />
             
             <div className="relative z-10 flex items-center justify-between">
-              <BrandLogo />
-              <Link href="/" className="text-[0.6rem] font-mono tracking-widest text-white/40 hover:text-accent flex items-center gap-2 group transition-all lg:hidden">
+              <BrandLogo href={ROUTES.PAGES.HOME} />
+              <Link href={ROUTES.PAGES.HOME} className="text-[0.6rem] font-mono tracking-widest text-white/40 hover:text-accent flex items-center gap-2 group transition-all lg:hidden">
                 <ArrowRight className="w-3 h-3 rotate-180 group-hover:-translate-x-1 transition-transform" /> VOLTAR
               </Link>
             </div>
@@ -130,7 +131,7 @@ function LoginContent() {
                     <span className="block text-sm font-medium text-foreground/80 group-focus-within:text-accent transition-colors">
                       Senha
                     </span>
-                    <Link href="/login/esqueci-senha" className="text-xs text-accent font-semibold hover:underline transition-all">
+                    <Link href={ROUTES.PAGES.AUTH.FORGOT_PASSWORD} className="text-xs text-accent font-semibold hover:underline transition-all">
                       Esqueci minha senha
                     </Link>
                   </div>
@@ -157,7 +158,7 @@ function LoginContent() {
                 </button>
                 
                 <Link
-                  href={`/register${plan ? `?plan=${plan}` : ""}`}
+                  href={`${ROUTES.PAGES.AUTH.REGISTER}${plan ? `?plan=${plan}` : ""}`}
                   className="w-full flex items-center justify-center gap-2 rounded-full bg-surface border border-border-soft text-foreground px-6 py-4 text-sm font-bold magnetic hover:bg-surface-dim hover-lift transition-all"
                 >
                   Criar nova conta corporativa

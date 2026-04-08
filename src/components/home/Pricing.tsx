@@ -3,7 +3,7 @@
 import { Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { ROUTES } from "@/constants/routes";
 
 const plans = [
   {
@@ -60,22 +60,19 @@ export function Pricing() {
     try {
       setLoading(planKey);
       
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session) {
-        // Redireciona para o formulário de registro completo se não estiver logado
-        router.push(`/register?plan=${planKey}`);
-        return;
-      }
-
-      const response = await fetch("/api/checkout", {
+      const response = await fetch(ROUTES.API.CHECKOUT.ROOT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ planKey }),
       });
+
+      if (response.status === 401) {
+        // Redireciona para o formulário de registro completo se não estiver logado
+        router.push(`${ROUTES.PAGES.AUTH.REGISTER}?plan=${planKey}`);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Erro ao iniciar assinatura");
@@ -92,6 +89,7 @@ export function Pricing() {
       setLoading(null);
     }
   };
+
 
   return (
     <section id="pricing" className="py-28 md:py-32">

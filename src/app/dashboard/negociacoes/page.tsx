@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthToken } from "@/hooks/useAuthToken";
+import { ROUTES } from "@/constants/routes";
 
 import { 
 
@@ -51,7 +52,7 @@ function NegociacoesContent() {
     try {
       setLoading(true);
       const authHeaders = await getAuthHeaders();
-      const res = await fetch("/api/negotiations", { headers: authHeaders });
+      const res = await fetch(ROUTES.API.NEGOTIATIONS, { headers: authHeaders });
       if (res.ok) {
         const data = await res.json();
         setNegotiations(data);
@@ -70,7 +71,7 @@ function NegociacoesContent() {
     
     try {
       const authHeaders = await getAuthHeaders();
-      const res = await fetch(`/api/negotiations?id=${id}`, {
+      const res = await fetch(`${ROUTES.API.NEGOTIATIONS}?id=${id}`, {
         method: "DELETE",
         headers: authHeaders,
       });
@@ -114,7 +115,7 @@ function NegociacoesContent() {
           </div>
 
           <Link
-            href="/dashboard/gerador"
+            href={ROUTES.PAGES.DASHBOARD.GENERATOR}
             className="magnetic hover-lift inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-8 py-4 font-bold text-base neo-ring w-full md:w-auto shrink-0"
           >
             <Plus className="h-5 w-5" />
@@ -183,7 +184,7 @@ function NegociacoesContent() {
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
-                          href={`/dashboard/gerador?id=${item.id}`}
+                          href={`${ROUTES.PAGES.DASHBOARD.GENERATOR}?id=${item.id}`}
                           className="inline-flex items-center gap-2 rounded-xl bg-accent/10 text-accent hover:bg-accent hover:text-white px-4 py-2 text-xs font-bold transition-all"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -212,7 +213,7 @@ function NegociacoesContent() {
               Clique no botão abaixo para iniciar uma nova negociação coletiva com a IA.
             </p>
             <Link
-              href="/dashboard/gerador"
+              href={ROUTES.PAGES.DASHBOARD.GENERATOR}
               className="inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-3 font-bold text-sm hover-lift transition-all"
             >
               <Plus className="h-4 w-4" />

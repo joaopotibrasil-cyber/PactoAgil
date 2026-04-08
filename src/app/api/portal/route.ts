@@ -1,18 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/billing/stripe';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-helpers';
+import { ROUTES } from '@/constants/routes';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authResult = requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const userId = authResult;
 
-    if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
 
     const supabaseAdmin = createAdminClient();
 
@@ -25,8 +25,9 @@ export async function POST() {
           assinatura: Assinatura (*)
         )
       `)
-      .eq('userId', user.id)
+      .eq('userId', userId)
       .single();
+
 
     let stripeCustomerId: string | null = null;
     if (perfil?.empresa) {
@@ -44,7 +45,7 @@ export async function POST() {
     // 2. Criar a sessão do Portal do Stripe
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.PAGES.DASHBOARD.ROOT}`,
     });
 
     return NextResponse.json({ url: session.url });

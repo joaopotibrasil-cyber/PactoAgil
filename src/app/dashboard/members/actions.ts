@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { EmailService } from '@/lib/email/EmailService';
+import { ROUTES } from '@/constants/routes';
 import { rateLimit, RATE_LIMITS } from '@/lib/rate-limit';
 import { z } from 'zod';
 
@@ -115,7 +116,7 @@ export async function inviteMemberAction(formData: FormData) {
     type: 'invite',
     email: guestEmail,
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?invited=true`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}${ROUTES.PAGES.AUTH.CALLBACK}?invited=true`,
       data: { full_name: guestName, empresaId: empresa.id },
     }
   });
@@ -155,6 +156,6 @@ export async function inviteMemberAction(formData: FormData) {
     }
   }
 
-  revalidatePath('/dashboard/members');
+  revalidatePath(ROUTES.PAGES.DASHBOARD.MEMBERS);
   return { success: true };
 }

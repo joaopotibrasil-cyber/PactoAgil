@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight, Sparkles, Loader2 } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
@@ -19,7 +20,7 @@ function CheckoutSuccessContent() {
 
     const verify = async () => {
       try {
-        const res = await fetch(`/api/checkout/verify?session_id=${sessionId}`, {
+        const res = await fetch(`${ROUTES.API.CHECKOUT.VERIFY}?session_id=${sessionId}`, {
           credentials: "include",
         });
         const data = await res.json();
@@ -103,7 +104,7 @@ function CheckoutSuccessContent() {
           </div>
           <div className="grid gap-4">
             <Link
-              href="/dashboard"
+              href={ROUTES.PAGES.DASHBOARD.ROOT}
               className="group relative flex items-center justify-center gap-2 bg-primary text-primary-foreground py-4 rounded-2xl font-bold text-lg hover-lift transition-all neo-ring"
             >
               Acessar Painel de Controle
@@ -128,7 +129,7 @@ function CheckoutSuccessContent() {
             </p>
           </div>
           <Link
-            href="/dashboard"
+            href={ROUTES.PAGES.DASHBOARD.ROOT}
             className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground py-4 px-8 rounded-2xl font-bold text-lg hover-lift transition-all"
           >
             Ir para o Painel

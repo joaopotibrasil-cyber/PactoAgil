@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/billing/stripe';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-helpers';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +43,7 @@ function resolverTipoPlano(priceId: string): string {
  * Isso substitui o webhook localmente, onde o Stripe não consegue
  * enviar notificações para o localhost.
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('session_id');
@@ -51,12 +53,10 @@ export async function GET(req: Request) {
     }
 
     // Verificar autenticação
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authResult = requireAuth(req);
+    if (authResult instanceof NextResponse) return authResult;
+    const userIdMiddleware = authResult;
 
-    if (!user) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
-    }
 
     // Buscar sessão no Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -76,7 +76,8 @@ export async function GET(req: Request) {
     }
 
     const supabaseAdmin = createAdminClient();
-    const userId = session.metadata?.userId || user.id;
+    const userId = session.metadata?.userId || userIdMiddleware;
+
     const priceId = subscription.items.data[0].price.id;
     const tipoPlano = resolverTipoPlano(priceId);
 
@@ -99,7 +100,7 @@ export async function GET(req: Request) {
         .from('Empresa')
         .insert({
           id: crypto.randomUUID(),
-          nome: `Empresa de ${perfil.nomeCompleto || user.email}`,
+          nome: `Empresa de ${perfil.nomeCompleto || perfil.email}`,
           atualizadoEm: new Date(),
         })
         .select('id')

@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { ROUTES } from '@/constants/routes';
 
 /**
  * Hook que obtém o access_token válido da sessão atual.
@@ -21,7 +22,7 @@ export function useAuthToken() {
     }
 
     try {
-      const res = await fetch('/api/auth/token', {
+      const res = await fetch(ROUTES.API.AUTH.TOKEN, {
         credentials: 'include', // garante que os cookies são enviados
       });
 
