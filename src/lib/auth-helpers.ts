@@ -46,72 +46,79 @@ function extractBearerToken(request?: NextRequest | Request): string | null {
  */
 export async function requireAuth(request?: NextRequest | Request): Promise<string | NextResponse> {
   try {
-    // 1. Primeiro tentar via headers injetados pelo middleware (mais confiável em Edge)
+    // 1. Prioridade Máxima: Header injetado pelo Middleware (x-user-id)
     const userIdFromHeader = request ? getUserIdFromRequest(request) : null;
     if (userIdFromHeader) {
-      console.log('[requireAuth][v3-fetch] Autenticado via header x-user-id:', userIdFromHeader);
+      console.log('[requireAuth][v3-fetch] Sucesso: Identificado via middleware (header x-user-id).');
       return userIdFromHeader;
     }
 
-    // 2. Tentar via Cookies (padrão Supabase)
+    // 2. Segunda Camada: Cookies (Supabase Client tradicional)
     const supabase = await createClient();
     const { data: { user }, error: sessionError } = await supabase.auth.getUser();
 
     if (user && !sessionError) {
-      console.log('[requireAuth] Autenticado via cookie:', user.id);
+      console.log('[requireAuth][v3-fetch] Sucesso: Identificado via cookies.');
       return user.id;
     }
 
     if (sessionError) {
-      console.warn('[requireAuth] Sessão via cookie falhou:', sessionError.message);
+      console.warn('[requireAuth][v3-fetch] Aviso: Falha ao recuperar usuário via cookie:', sessionError.message);
     }
 
-    // 3. Fallback: Tentar via Header Authorization (Bearer Token)
+    // 3. Terceira Camada: Bearer Token (Authorization Header Direto)
+    // Essencial para requisições cross-origin ou quando o middleware Edge falha
     let token = extractBearerToken(request);
     
     if (token) {
       token = token.trim();
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !anonKey || token === 'null' || token === 'undefined' || token === '') {
-        console.warn('[requireAuth] Token inválido ou variáveis do Supabase não configuradas no servidor.');
+      if (token === 'null' || token === 'undefined' || token === '') {
+        console.warn('[requireAuth][v3-fetch] Aviso: Token no header Authorization é inválido ou vazio.');
       } else {
-        try {
-          const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'apikey': anonKey
-            }
-          });
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !anonKey) {
+          console.error('[requireAuth][v3-fetch] ERRO: Variáveis de ambiente do Supabase ausentes no servidor.');
+        } else {
+          try {
+            const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'apikey': anonKey
+              }
+            });
 
-          if (res.ok) {
-            const tokenUser = await res.json();
-            if (tokenUser && tokenUser.id) {
-              console.log('[requireAuth] Autenticado via Bearer Token (Fetch):', tokenUser.id);
-              return tokenUser.id;
+            if (res.ok) {
+              const tokenUser = await res.json();
+              if (tokenUser && tokenUser.id) {
+                console.log('[requireAuth][v3-fetch] Sucesso: Identificado via Bearer Token validado manualmente.');
+                return tokenUser.id;
+              }
+            } else {
+              const errorData = await res.text();
+              console.warn(`[requireAuth][v3-fetch] Falha: Token rejeitado pela API do Supabase (Status: ${res.status}).`, errorData);
             }
-          } else {
-            const errorData = await res.text();
-            console.warn(`[requireAuth] Falha ao chamar GET /user. Status: ${res.status}`, errorData);
+          } catch (fetchErr) {
+            console.error('[requireAuth][v3-fetch] Exceção: Falha na comunicação com API do Supabase:', fetchErr);
           }
-        } catch (fetchErr) {
-          console.error('[requireAuth] Exceção durante validação de Bearer via API:', fetchErr);
         }
       }
+    } else {
+       console.log('[requireAuth][v3-fetch] Info: Nenhum token Bearer encontrado nos headers.');
     }
 
-    // Se todos falharem
-    console.error('[requireAuth] Todas as tentativas de autenticação falharam');
+    // Fallback Final: Todas as camadas falharam
+    console.error('[requireAuth][v3-fetch] CRÍTICO: Todas as camadas de autenticação falharam (Header, Cookie, Bearer).');
     return NextResponse.json(
-      { error: 'Não autorizado. Faça login novamente.' },
+      { error: 'Não autorizado. Por favor, faça login novamente.' },
       { status: 401 }
     );
   } catch (err) {
-    console.error('[requireAuth] Erro crítico ao validar autenticação:', err);
+    console.error('[requireAuth][v3-fetch] Erro interno crítico no processo de autenticação:', err);
     return NextResponse.json(
-      { error: 'Erro de autenticação interna.' },
+      { error: 'Erro interno de servidor ao validar acesso.' },
       { status: 500 }
     );
   }

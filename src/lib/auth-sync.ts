@@ -23,11 +23,18 @@ export const AUTH_KEYS = {
 export async function syncUserSession(): Promise<UserState | null> {
   try {
     console.log('[auth-sync] Iniciando sincronização via /api/me...');
+    const token = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
+    const headers: Record<string, string> = {
+      'Cache-Control': 'no-cache',
+    };
+
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch('/api/me', {
       method: 'GET',
-      headers: {
-        'Cache-Control': 'no-cache',
-      },
+      headers,
     });
 
     if (!response.ok) {

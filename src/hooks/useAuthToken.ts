@@ -23,6 +23,7 @@ export function useAuthToken() {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (!error && session?.access_token) {
+        console.log('[useAuthToken] Token obtido via Supabase SDK.', { preview: session.access_token.substring(0, 10) + '...' });
         tokenRef.current = {
           value: session.access_token,
           expiresAt: session.expires_at ? session.expires_at * 1000 : now + 3600 * 1000,
@@ -30,11 +31,14 @@ export function useAuthToken() {
         return session.access_token;
       }
 
+      if (error) {
+        console.warn('[useAuthToken] Erro no SDK ao obter sessão:', error.message);
+      }
+
       // 3. Fallback: LocalStorage (persiste mesmo se o SDK perder o estado)
       const storedToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
-      if (storedToken) {
-        console.log('[useAuthToken] Recuperando token via LocalStorage fallback.');
-        // Não temos o tempo de expiração exato aqui, assumimos 30 min para segurança
+      if (storedToken && storedToken !== 'null' && storedToken !== 'undefined') {
+        console.log('[useAuthToken] Fallback: Token recuperado do LocalStorage.', { preview: storedToken.substring(0, 10) + '...' });
         tokenRef.current = {
           value: storedToken,
           expiresAt: now + 30 * 60 * 1000, 
@@ -42,6 +46,7 @@ export function useAuthToken() {
         return storedToken;
       }
 
+      console.warn('[useAuthToken] Nenhum token encontrado em nenhuma camada.');
       return null;
     } catch (err) {
       console.error('[useAuthToken] Erro inesperado capturando token:', err);

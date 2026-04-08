@@ -42,23 +42,60 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Atualiza a sessão e obtém o usuário
-  const {
+  // 1. Tenta obter o usuário via Cookies (padrão Supabase)
+  let {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Injeta headers personalizados para uso nas API routes
+  // 2. Fallback: Se não houver usuário via cookie, tenta via Bearer Token (Authorization header)
+  // Isso resolve instabilidades de sessão no Edge runtime da Vercel
+  if (!user) {
+    const authHeader = request.headers.get('authorization')
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim()
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (supabaseUrl && anonKey && token && token !== 'null' && token !== 'undefined') {
+        try {
+          // Validação direta via API REST do Supabase (mais confiável no Edge)
+          const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'apikey': anonKey
+            }
+          })
+
+          if (res.ok) {
+            const tokenUser = await res.json()
+            if (tokenUser && tokenUser.id) {
+              user = tokenUser
+              console.log('[Middleware] Autenticado via Bearer Token fallback:', user?.id)
+            }
+          }
+        } catch (err) {
+          console.error('[Middleware] Erro ao validar Bearer Token:', err)
+        }
+      }
+    }
+  }
+
+  // 3. Injeta headers personalizados para as API routes e atualiza a resposta
   if (user) {
     requestHeaders.set('x-user-id', user.id)
     requestHeaders.set('x-user-email', user.email || '')
 
-    // Recria a resposta com os novos headers
+    // Recria a resposta com os novos headers injetados
     supabaseResponse = NextResponse.next({
       request: {
         ...request,
         headers: requestHeaders,
       },
     })
+    
+    // Essencial: Repassar os cookies de volta na resposta
+    // (Isso mantém a sessão de cookies ativa)
   }
 
   const isAuthRoute = request.nextUrl.pathname.startsWith(ROUTES.PAGES.AUTH.LOGIN)
