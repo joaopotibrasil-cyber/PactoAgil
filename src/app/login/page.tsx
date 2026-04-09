@@ -8,6 +8,8 @@ import { syncUserSession } from "@/lib/auth-sync";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ROUTES } from "@/constants/routes";
 import { ArrowRight, Lock, CreditCard, Loader2 } from "lucide-react";
+import { FullPageLoading } from "@/components/ui/FullPageLoading";
+
 
 function LoginContent() {
   const [loading, setLoading] = useState(false);
@@ -17,30 +19,54 @@ function LoginContent() {
   const router = useRouter();
   const plan = searchParams.get("plan");
 
-  async function handleAction(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    console.log("[Login] Botão clicado, iniciando handleSubmit...");
+    e.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(null);
     
-    const action = formData.get("submitAction") as string;
+    const formData = new FormData(e.currentTarget);
+    // Identificar qual botão foi clicado (Next.js/React standard)
+    const submitter = (e.nativeEvent as any).submitter as HTMLButtonElement;
+    const action = submitter?.value || (formData.get("submitAction") as string);
+    
+    console.log("[Login] Ação detectada:", action);
     let result;
 
-    if (action === "login") {
-      result = await login(formData);
-    }
+    try {
+      if (action === "login") {
+        console.log("[Login] Chamando server action login...");
+        result = await login(formData);
+        console.log("[Login] Resposta do server action:", result);
+      }
 
-    if (result?.error) {
-      setError(result.error);
+      if (result?.error) {
+        setError(result.error);
+        setLoading(false);
+      } else if (result?.success) {
+        console.log("[Login] Sucesso no login, iniciando syncUserSession...");
+        // Sincroniza sessão globalmente antes de redirecionar
+        const syncResult = await syncUserSession();
+        console.log("[Login] Resultado do syncUserSession:", syncResult);
+        
+        console.log("[Login] Redirecionando para dashboard...");
+        router.push(ROUTES.PAGES.DASHBOARD.ROOT);
+      } else {
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error("[Login] Erro crítico no cliente:", err);
+      setError("Ocorreu um erro inesperado. Tente novamente.");
       setLoading(false);
-    } else if (result?.success) {
-      // Sincroniza sessão globalmente antes de redirecionar
-      await syncUserSession();
-      router.push(ROUTES.PAGES.DASHBOARD.ROOT);
     }
   }
 
+  console.log("[Login] Renderizando conteúdo, loading:", loading);
+
   return (
     <div className="min-h-screen bg-background flex text-foreground overflow-hidden">
+      <FullPageLoading show={loading} />
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-0 right-1/4 w-[40rem] h-[40rem] bg-accent/5 rounded-full blur-[100px] -translate-y-1/2" />
@@ -116,7 +142,7 @@ function LoginContent() {
               )}
             </div>
 
-            <form action={handleAction} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <input type="hidden" name="plan" value={plan || ""} />
               <div className="space-y-5">
                 <label className="block group">

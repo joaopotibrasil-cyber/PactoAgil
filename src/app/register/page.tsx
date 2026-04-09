@@ -4,6 +4,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
 import { registerAction } from "./actions";
 import { Loader2, ArrowRight, ShieldCheck, Building2, User2, CheckCircle2, PlusCircle } from "lucide-react";
+import { FullPageLoading } from "@/components/ui/FullPageLoading";
+
 import Link from "next/link";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { formatCNPJ } from "@/lib/validation/schemas";
@@ -98,19 +100,24 @@ function RegisterForm() {
       formData.set("cnpj", manualCnpj);
     }
 
-    const result = await runRegistration(formData);
+    try {
+      const result = await runRegistration(formData);
 
-    // Se o registro for bem-sucedido, sincronizamos a sessão antes de redirecionar
-    if (result && 'success' in result) {
-      await syncUserSession();
-      if (result.redirect) {
-        router.push(result.redirect);
+      // Se o registro for bem-sucedido, sincronizamos a sessão antes de redirecionar
+      if (result && 'success' in result) {
+        await syncUserSession();
+        if (result.redirect) {
+          router.push(result.redirect);
+        }
       }
+    } catch (err) {
+      console.error("Registration error:", err);
     }
   };
 
   return (
     <div className="w-full max-w-md mx-auto p-8 rounded-[2rem] border border-border-soft bg-surface isolation-auto relative overflow-hidden neo-ring">
+      <FullPageLoading show={isLoading} message="Processando seu registro..." />
       <div className="absolute inset-0 bg-gradient-radial from-accent/5 to-transparent pointer-events-none" />
       
       <div className="relative z-10 space-y-6">

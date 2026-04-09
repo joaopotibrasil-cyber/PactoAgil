@@ -12,11 +12,11 @@ model Empresa {
   nome                String
   cnpj                String?              @unique
   slug                String?              @unique
-  funcionalidade      String?
-  logoUrl             String?
-  corPrimaria         String?              @default("#006fee")
   criadoEm            DateTime             @default(now())
   atualizadoEm        DateTime             @updatedAt
+  funcionalidade      String?
+  corPrimaria         String?              @default("#006fee")
+  logoUrl             String?
   assinatura          Assinatura?
   historicosPagamento HistoricoPagamento[]
   negociacoes         Negociacao[]
@@ -38,7 +38,7 @@ model Perfil {
   empresaId    String?
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
-  empresa      Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  empresa      Empresa? @relation(fields: [empresaId], references: [id])
 
   @@index([userId])
   @@index([email])
@@ -69,15 +69,15 @@ model Negociacao {
   id           String   @id @default(uuid())
   empresaId    String
   nomeEmpresa  String
-  titulo       String?
   cnpjAlvo     String?
   dataBase     DateTime
   status       String
   instrumento  String
-  clausulas    Json?
-  minuta       String?  @db.Text
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
+  clausulas    Json?
+  minuta       String?
+  titulo       String?
   empresa      Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   @@index([empresaId])
