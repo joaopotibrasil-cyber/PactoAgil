@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getServerUser } from "@/lib/auth-helpers";
+import prisma from "@/lib/prisma";
 import { Users, Shield, Mail, BadgeCheck, Zap, Info } from "lucide-react";
 import { InviteMemberButton } from "./InviteMemberButton";
 
@@ -27,17 +28,17 @@ type Perfil = {
 };
 
 export default async function MembersPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const userId = await getServerUser();
 
-  if (!user) redirect("/login");
+  if (!userId) redirect("/login");
 
-  // Buscar perfil do usuário com empresa
-  const { data: perfil } = await supabase
-    .from("Perfil")
-    .select("*, empresaId")
-    .eq("userId", user.id)
-    .single();
+  // Buscar perfil do usuário com empresa via Prisma (ignora RLS)
+  const perfil = await prisma.perfil.findUnique({
+    where: { userId },
+    include: {
+      empresa: true
+    }
+  });
 
   if (!perfil || !perfil.empresaId) {
     return (
@@ -52,25 +53,23 @@ export default async function MembersPage() {
     );
   }
 
-  // Buscar empresa
-  const { data: empresa } = await supabase
-    .from("Empresa")
-    .select("id, nome")
-    .eq("id", perfil.empresaId)
-    .single();
+  const empresa = perfil.empresa;
 
-  // Buscar assinatura
-  const { data: assinatura } = await supabase
-    .from("Assinatura")
-    .select("tipoPlano, status")
-    .eq("empresaId", perfil.empresaId)
-    .single();
+  // Buscar assinatura via Prisma
+  const assinatura = await prisma.assinatura.findUnique({
+    where: { empresaId: perfil.empresaId }
+  });
 
-  // Buscar todos os membros da empresa
-  const { data: membros } = await supabase
-    .from("Perfil")
-    .select("id, nomeCompleto, email, role")
-    .eq("empresaId", perfil.empresaId);
+  // Buscar todos os membros da empresa via Prisma
+  const membros = await prisma.perfil.findMany({
+    where: { empresaId: perfil.empresaId },
+    select: {
+      id: true,
+      nomeCompleto: true,
+      email: true,
+      role: true
+    }
+  });
 
   const currentMembers = membros?.length || 0;
   const planKey = (assinatura?.tipoPlano || "GRATIS").toUpperCase() as keyof typeof PLAN_LIMITS;

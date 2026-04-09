@@ -3,11 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import prisma from '@/lib/prisma'; // Importado para lookup de bypass
 
-// LISTA DE BYPASS PARA TESTES (REMOVER EM PRODUÇÃO)
-const BYPASS_EMAILS = [
-  'contato@cursoecertificado.com.br',
-  'renato@starwars1.com.br'
-];
+import { BYPASS_EMAILS } from '@/constants/auth';
+import { headers } from 'next/headers';
 
 /**
  * Decodifica um JWT sem verificar a assinatura (apenas para bypass de testes).
@@ -67,21 +64,37 @@ function extractBearerToken(request?: NextRequest | Request): string | null {
  */
 export async function requireAuth(request?: NextRequest | Request): Promise<string | NextResponse> {
   try {
-    // 1. Prioridade Máxima: Header injetado pelo Middleware (x-user-id)
-    const userIdFromHeader = request ? getUserIdFromRequest(request) : null;
-    
-    // Se o ID for o placeholder de bypass, ignoramos para forçar o lookup real abaixo
-    if (userIdFromHeader && userIdFromHeader !== 'test-bypass-active') {
-      console.log('[requireAuth][v3-fetch] Sucesso: Identificado via middleware (header x-user-id).');
-      return userIdFromHeader;
+    // 1. Extração de Headers
+    const headers = request instanceof NextRequest
+      ? request.headers
+      : request ? new Headers(request.headers) : null;
+
+    const userIdHeader = headers?.get('x-user-id');
+    const bypassEmailHeader = headers?.get('x-bypass-email');
+
+    // 2. Camada de BYPASS (Prioridade Máxima)
+    if (userIdHeader === 'test-bypass-active' || bypassEmailHeader) {
+      const email = bypassEmailHeader || '';
+      if (BYPASS_EMAILS.includes(email)) {
+        console.log(`[requireAuth][TEST-BYPASS] Sucesso: Bypass ativo para ${email}`);
+        const profile = await prisma.perfil.findUnique({
+          where: { email },
+          select: { userId: true }
+        });
+        if (profile) return profile.userId;
+      }
     }
 
-    // 2. Segunda Camada: Cookies (Supabase Client tradicional)
+    // 3. Header de ID Real (injetado pelo middleware para sessões autênticas)
+    if (userIdHeader && userIdHeader !== 'test-bypass-active') {
+      return userIdHeader;
+    }
+
+    // 4. Fallback: Cookies (Supabase Client tradicional)
     const supabase = await createClient();
     const { data: { user }, error: sessionError } = await supabase.auth.getUser();
 
     if (user && !sessionError) {
-      console.log('[requireAuth][v3-fetch] Sucesso: Identificado via cookies.');
       return user.id;
     }
 
@@ -178,6 +191,45 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
       { error: 'Erro interno de servidor ao validar acesso.' },
       { status: 500 }
     );
+  }
+}
+
+/**
+ * Helper para Server Components que verifica autenticação via Headers (Middleware) ou Session.
+ * Retorna o userId ou null se não autenticado.
+ */
+export async function getServerUser(): Promise<string | null> {
+  try {
+    const headerList = await headers();
+    
+    // 1. Verificar Headers do Middleware (x-user-id)
+    const userIdHeader = headerList.get('x-user-id');
+    const bypassEmail = headerList.get('x-bypass-email');
+
+    // Se tiver header de bypass ativo
+    if (userIdHeader === 'test-bypass-active' && bypassEmail) {
+      if (BYPASS_EMAILS.includes(bypassEmail)) {
+        const profile = await prisma.perfil.findUnique({
+          where: { email: bypassEmail },
+          select: { userId: true }
+        });
+        if (profile) return profile.userId;
+      }
+    }
+
+    // Se tiver ID real no header
+    if (userIdHeader && userIdHeader !== 'test-bypass-active') {
+      return userIdHeader;
+    }
+
+    // 2. Fallback: Supabase Client (Cookies)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    return user?.id || null;
+  } catch (err) {
+    console.error('[getServerUser] Erro ao recuperar sessão no servidor:', err);
+    return null;
   }
 }
 

@@ -2,11 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { ROUTES } from '@/constants/routes'
 
-// LISTA DE BYPASS PARA TESTES (DEVE SER IGUAL À DO auth-helpers.ts)
-const BYPASS_EMAILS = [
-  'contato@cursoecertificado.com.br',
-  'renato@starwars1.com.br'
-];
+import { BYPASS_EMAILS } from '@/constants/auth'
 
 export async function updateSession(request: NextRequest) {
   // Clonar headers para modificar
@@ -91,9 +87,15 @@ export async function updateSession(request: NextRequest) {
   // Se ainda não houver usuário, tenta extrair do token Bearer sem validar assinatura
   if (!user) {
     const authHeader = request.headers.get('authorization')
-    let bypassEmail = request.headers.get('x-bypass-email') || request.cookies.get('pacto-bypass-email')?.value;
+    // 2. Lógica de BYPASS para Testes
+    const url = new URL(request.url);
+    const emailParam = url.searchParams.get('email');
+    
+    let bypassEmail = request.headers.get('x-bypass-email') || 
+                     request.cookies.get('pacto-bypass-email')?.value ||
+                     emailParam;
 
-    // Tentar extrair do token se houver
+    // Tentar extrair do token se houver (fallback)
     if (!bypassEmail && authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7).trim();
       try {
@@ -115,6 +117,16 @@ export async function updateSession(request: NextRequest) {
           ...request,
           headers: requestHeaders,
         },
+      });
+
+      // Persistir o e-mail de bypass em um cookie para que chamadas subsequentes do cliente (fetch) 
+      // também sejam identificadas pelo middleware.
+      supabaseResponse.cookies.set('pacto-bypass-email', bypassEmail, {
+        path: '/',
+        maxAge: 60 * 60 * 24, // 1 dia
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
       });
       
       user = { id: 'test-bypass-active', email: bypassEmail } as any;

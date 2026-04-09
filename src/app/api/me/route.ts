@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { BYPASS_EMAILS } from '@/constants/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,10 +123,6 @@ export async function GET(request: NextRequest) {
     // CAMADA DE BYPASS PARA TESTES (REMOVER EM PRODUÇÃO)
     // =========================================================================
     if (!userId) {
-      const BYPASS_EMAILS = [
-        'contato@cursoecertificado.com.br',
-        'renato@starwars1.com.br'
-      ];
       const bypassEmail = request.headers.get('x-bypass-email');
       
       if (bypassEmail && BYPASS_EMAILS.includes(bypassEmail)) {
@@ -136,6 +133,7 @@ export async function GET(request: NextRequest) {
         });
         if (userFound) {
           userId = userFound.userId;
+          finalToken = 'test-bypass-token'; // Token dummy para o cliente se manter logado
         }
       }
     }
