@@ -207,47 +207,62 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
 export async function getServerUser(): Promise<string | null> {
   try {
     const headerList = await headers();
+    const cookieStore = await cookies();
     
-    // 1. Verificar Headers do Middleware ou Cookies
+    // 1. Verificar Headers do Middleware
     const userIdHeader = headerList.get('x-user-id');
-    let bypassEmail = headerList.get('x-bypass-email');
+    const bypassEmailHeader = headerList.get('x-bypass-email');
 
-    // Fallback agressivo para Cookies (essencial no Vercel Edge)
-    if (!bypassEmail) {
-      const cookieStore = await cookies();
-      bypassEmail = cookieStore.get('pacto-bypass-email')?.value || null;
-    }
+    // 2. Fallback para Cookies (Crucial para transições client-side no Vercel Edge)
+    const bypassEmailCookie = cookieStore.get('pacto-bypass-email')?.value;
+    
+    const bypassEmail = bypassEmailHeader || bypassEmailCookie;
 
-    console.log(`[getServerUser] Request Context - userId: ${userIdHeader}, bypassEmail: ${bypassEmail}`);
+    console.log(`[getServerUser] Diagnóstico - HeaderID: ${userIdHeader}, HeaderBypass: ${bypassEmailHeader}, CookieBypass: ${bypassEmailCookie}`);
 
-    // Se tiver bypass ativo (via header ou cookie)
+    // LOGICA DE BYPASS (TESTES)
     if (bypassEmail && BYPASS_EMAILS.includes(bypassEmail)) {
-      const profile = await prisma.perfil.findUnique({
-        where: { email: bypassEmail },
-        select: { userId: true }
-      });
+      try {
+        const profile = await prisma.perfil.findUnique({
+          where: { email: bypassEmail },
+          select: { userId: true }
+        });
+        
+        if (profile) {
+          console.log(`[getServerUser] Bypass Ativo (Perfil): ${profile.userId}`);
+          return profile.userId;
+        }
+      } catch (dbErr) {
+        console.error('[getServerUser] Erro ao buscar perfil prisma:', dbErr);
+      }
       
-      if (profile) return profile.userId;
-      
-      // FALLBACK: Se o perfil não existir, retornar um ID de teste para evitar o redirect para login
-      console.warn(`[getServerUser] ALERTA: Usuário bypass ${bypassEmail} não possui Perfil no banco. Usando ID de teste.`);
-      return `test-id-${bypassEmail.split('@')[0]}`;
+      // FALLBACK MÁXIMO: Se o bypass é válido por e-mail, não redirecionamos mesmo se o prisma falhar
+      const testId = `test-id-${bypassEmail.split('@')[0]}`;
+      console.warn(`[getServerUser] Usando Fallback de Teste: ${testId}`);
+      return testId;
     }
 
-    // Se tiver ID real no header
+    // LOGICA DE SESSÃO REAL
     if (userIdHeader && userIdHeader !== 'test-bypass-active') {
       return userIdHeader;
     }
 
-    // 2. Fallback: Supabase Client (Cookies)
+    // Fallback: Supabase Client (Cookies tradicionais)
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
-    return user?.id || null;
+    if (user) {
+      console.log(`[getServerUser] Sessão Supabase Detectada: ${user.id}`);
+      return user.id;
+    }
+
+    console.warn('[getServerUser] Nenhuma sessão encontrada.');
+    return null;
   } catch (err) {
-    console.error('[getServerUser] Erro ao recuperar sessão no servidor:', err);
+    console.error('[getServerUser] Erro fatal ao recuperar sessão:', err);
     return null;
   }
 }
+
 
 

@@ -5,6 +5,18 @@ import { ROUTES } from '@/constants/routes'
 import { BYPASS_EMAILS } from '@/constants/auth'
 
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Ignorar assets estáticos e manifestos explicitamente
+  if (
+    pathname.includes('manifest.json') || 
+    pathname.includes('site.webmanifest') || 
+    pathname.includes('robots.txt') ||
+    pathname.endsWith('.json')
+  ) {
+    return NextResponse.next()
+  }
+
   // Clonar headers para modificar
   const requestHeaders = new Headers(request.headers)
 

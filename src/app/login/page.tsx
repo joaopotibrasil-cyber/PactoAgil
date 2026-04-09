@@ -157,11 +157,21 @@ function LoginContent() {
                   name="submitAction"
                   value="login"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-4 text-sm font-bold magnetic hover-lift neo-ring disabled:opacity-50 disabled:pointer-events-none"
+                  className="w-full flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground px-6 py-4 text-sm font-bold magnetic hover-lift neo-ring disabled:opacity-50 disabled:pointer-events-none transition-all"
                 >
-                  {loading ? "Autenticando..." : "Entrar na plataforma"}
-                  {!loading && <ArrowRight className="w-4 h-4" />}
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Autenticando...
+                    </>
+                  ) : (
+                    <>
+                      Entrar na plataforma
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </button>
+
                 
                 <Link
                   href={`${ROUTES.PAGES.AUTH.REGISTER}${plan ? `?plan=${plan}` : ""}`}
