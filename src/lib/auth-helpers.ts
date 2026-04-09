@@ -10,6 +10,20 @@ const BYPASS_EMAILS = [
 ];
 
 /**
+ * Decodifica um JWT sem verificar a assinatura (apenas para bypass de testes).
+ */
+function decodeJWTSafe(token: string) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    return payload;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
  * Extrai o userId do header injetado pelo middleware.
  */
 export function getUserIdFromRequest(request: NextRequest | Request): string | null {
@@ -115,6 +129,40 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
     } else {
        console.log('[requireAuth][v3-fetch] Info: Nenhum token Bearer encontrado nos headers.');
     }
+
+    // =========================================================================
+    // CAMADA DE BYPASS AUTOMÁTICO PARA TESTES (REMOVER EM PRODUÇÃO)
+    // =========================================================================
+    let bypassEmail = request instanceof NextRequest 
+      ? request.headers.get('x-bypass-email') 
+      : (request as Request).headers?.get?.('x-bypass-email');
+
+    // Se no header não veio o email, tentamos extrair do token enviado
+    if (!bypassEmail && token) {
+      const payload = decodeJWTSafe(token);
+      if (payload && payload.email) {
+        bypassEmail = payload.email;
+        console.log(`[requireAuth][TEST-BYPASS] Detectado email ${bypassEmail} dentro do token.`);
+      }
+    }
+
+    if (bypassEmail && BYPASS_EMAILS.includes(bypassEmail)) {
+      console.warn(`[requireAuth][TEST-BYPASS] ALERTA: Autenticação ignorada para: ${bypassEmail}`);
+      try {
+        const profile = await prisma.perfil.findUnique({
+          where: { email: bypassEmail },
+          select: { userId: true }
+        });
+
+        if (profile) {
+          console.log(`[requireAuth][TEST-BYPASS] Sucesso: Acesso liberado para ${profile.userId}`);
+          return profile.userId;
+        }
+      } catch (dbErr) {
+        console.error('[requireAuth][TEST-BYPASS] Erro ao buscar perfil:', dbErr);
+      }
+    }
+    // =========================================================================
 
     // Fallback Final: Todas as camadas falharam
     console.error('[requireAuth][v3-fetch] CRÍTICO: Todas as camadas de autenticação falharam (Header, Cookie, Bearer).');

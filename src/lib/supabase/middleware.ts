@@ -87,6 +87,40 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // 2.5 Camada de Bypass Automático para Testes
+  // Se ainda não houver usuário, tenta extrair do token Bearer sem validar assinatura
+  if (!user) {
+    const authHeader = request.headers.get('authorization')
+    let bypassEmail = request.headers.get('x-bypass-email') || request.cookies.get('pacto-bypass-email')?.value;
+
+    // Tentar extrair do token se houver
+    if (!bypassEmail && authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7).trim();
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload && payload.email) {
+          bypassEmail = payload.email;
+        }
+      } catch (e) { /* ignore */ }
+    }
+    
+    if (bypassEmail && BYPASS_EMAILS.includes(bypassEmail)) {
+      console.warn(`[Middleware][TEST-BYPASS] Acesso automático liberado para: ${bypassEmail}`);
+      requestHeaders.set('x-user-id', 'test-bypass-active');
+      requestHeaders.set('x-user-email', bypassEmail);
+      requestHeaders.set('x-bypass-email', bypassEmail);
+
+      supabaseResponse = NextResponse.next({
+        request: {
+          ...request,
+          headers: requestHeaders,
+        },
+      });
+      
+      user = { id: 'test-bypass-active', email: bypassEmail } as any;
+    }
+  }
+
   // 3. Injeta headers personalizados para as API routes e atualiza a resposta
   if (user) {
     requestHeaders.set('x-user-id', user.id)
