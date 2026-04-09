@@ -69,7 +69,9 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
   try {
     // 1. Prioridade Máxima: Header injetado pelo Middleware (x-user-id)
     const userIdFromHeader = request ? getUserIdFromRequest(request) : null;
-    if (userIdFromHeader) {
+    
+    // Se o ID for o placeholder de bypass, ignoramos para forçar o lookup real abaixo
+    if (userIdFromHeader && userIdFromHeader !== 'test-bypass-active') {
       console.log('[requireAuth][v3-fetch] Sucesso: Identificado via middleware (header x-user-id).');
       return userIdFromHeader;
     }
