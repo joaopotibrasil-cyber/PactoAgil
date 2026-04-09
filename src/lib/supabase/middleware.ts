@@ -193,9 +193,10 @@ export async function updateSession(request: NextRequest) {
 
   // Se houver bypass ativo, garantir que o cookie final contenha o email
   if (user?.id === 'test-bypass-active' && user.email) {
+    console.log(`[middleware] Persistindo cookie de bypass para: ${user.email}`);
     finalResponse.cookies.set('pacto-bypass-email', user.email, {
       path: '/',
-      maxAge: 60 * 60 * 24,
+      maxAge: 60 * 60 * 24, // 24h
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
