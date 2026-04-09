@@ -12,18 +12,20 @@ export async function POST(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
-    const supabase = await createClient();
-
-    // Buscar a empresa vinculada ao usuário
-    const { data: empresa } = await supabase
-      .from("Empresa")
-      .select("id")
-      .eq("userId", userId) // Corrigido: usando o userId do middleware
-      .single();
-
-
+    // Buscar a empresa vinculada ao usuário usando Prisma (ignora RLS do Supabase)
+    const empresa = await prisma.empresa.findFirst({
+      where: {
+        usuarios: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      select: { id: true }
+    });
 
     if (!empresa) {
+      console.warn(`[API /api/negotiations] Empresa não encontrada para o userId: ${userId}`);
       return NextResponse.json({ error: "Empresa não encontrada" }, { status: 404 });
     }
 
@@ -68,17 +70,20 @@ export async function GET(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
-    const supabase = await createClient();
-
-    const { data: empresa } = await supabase
-      .from("Empresa")
-      .select("id")
-      .eq("userId", userId) // Corrigido aqui também
-      .single();
-
-
+    // Buscar a empresa vinculada ao usuário usando Prisma (ignora RLS do Supabase)
+    const empresa = await prisma.empresa.findFirst({
+      where: {
+        usuarios: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      select: { id: true }
+    });
 
     if (!empresa) {
+      console.warn(`[API /api/negotiations GET] Empresa não encontrada para o userId: ${userId}`);
       return NextResponse.json({ error: "Empresa não encontrada" }, { status: 404 });
     }
 
@@ -110,17 +115,20 @@ export async function DELETE(request: NextRequest) {
     if (authResult instanceof NextResponse) return authResult;
     const userId = authResult;
 
-    const supabase = await createClient();
-
-    const { data: empresa } = await supabase
-      .from("Empresa")
-      .select("id")
-      .eq("userId", userId) // E aqui
-      .single();
-
-
+    // Buscar a empresa vinculada ao usuário usando Prisma (ignora RLS do Supabase)
+    const empresa = await prisma.empresa.findFirst({
+      where: {
+        usuarios: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      select: { id: true }
+    });
 
     if (!empresa) {
+      console.warn(`[API /api/negotiations DELETE] Empresa não encontrada para o userId: ${userId}`);
       return NextResponse.json({ error: "Empresa não encontrada" }, { status: 404 });
     }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
-import { createClient } from '@/lib/supabase/server';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,16 +22,29 @@ export async function GET(request: NextRequest) {
   const userId = authResult;
 
   try {
-    const supabase = await createClient();
+    // 1. Buscar perfil do usuário logado usando Prisma
+    const perfil = await prisma.perfil.findUnique({
+      where: { userId: userId },
+      include: {
+        empresa: {
+          include: {
+            assinatura: true,
+            usuarios: {
+              select: {
+                id: true,
+                nomeCompleto: true,
+                email: true,
+                role: true,
+                avatarUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
 
-    // 1. Buscar perfil do usuário logado
-    const { data: perfil, error: perfilError } = await supabase
-      .from('Perfil')
-      .select('nomeCompleto, email, role, empresaId, avatarUrl')
-      .eq('userId', userId)
-      .single();
-
-    if (perfilError || !perfil) {
+    if (!perfil) {
+      console.warn(`[API /api/profile] Perfil não encontrado para o userId: ${userId}`);
       return NextResponse.json({
         nomeCompleto: 'Usuário',
         email: request.headers.get('x-user-email') || '',
@@ -43,56 +56,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Initialize objects
-    let empresaData = null;
-    let assinaturaData = null;
-    let membrosData: any[] = [];
+    // Traduzir para o formato esperado pelo frontend
+    const empresaData = perfil.empresa ? {
+      id: perfil.empresa.id,
+      nome: perfil.empresa.nome,
+      cnpj: perfil.empresa.cnpj,
+      funcionalidade: perfil.empresa.funcionalidade,
+      logoUrl: perfil.empresa.logoUrl,
+      corPrimaria: perfil.empresa.corPrimaria,
+    } : null;
 
-    // 2. Se tiver empresa, buscar detalhes e membros
-    if (perfil.empresaId) {
-      // Buscar dados da Empresa
-      const { data: empresa } = await supabase
-        .from('Empresa')
-        .select('*')
-        .eq('id', perfil.empresaId)
-        .single();
+    const assinaturaData = perfil.empresa?.assinatura ? {
+      tipoPlano: perfil.empresa.assinatura.tipoPlano,
+      status: perfil.empresa.assinatura.status,
+      fimPeriodoAtual: perfil.empresa.assinatura.fimPeriodoAtual,
+    } : null;
 
-      if (empresa) {
-        empresaData = {
-          id: empresa.id,
-          nome: empresa.nome,
-          cnpj: empresa.cnpj,
-          funcionalidade: empresa.funcionalidade,
-          logoUrl: empresa.logoUrl,
-          corPrimaria: empresa.corPrimaria,
-        };
-      }
-
-      // Buscar Assinatura
-      const { data: assinatura } = await supabase
-        .from('Assinatura')
-        .select('*')
-        .eq('empresaId', perfil.empresaId)
-        .single();
-
-      if (assinatura) {
-        assinaturaData = {
-          tipoPlano: assinatura.tipoPlano,
-          status: assinatura.status,
-          fimPeriodoAtual: assinatura.fimPeriodoAtual,
-        };
-      }
-
-      // Buscar Membros da Equipe (outros perfis na mesma empresa)
-      const { data: membros } = await supabase
-        .from('Perfil')
-        .select('id, nomeCompleto, email, role, avatarUrl')
-        .eq('empresaId', perfil.empresaId);
-
-      if (membros) {
-        membrosData = membros;
-      }
-    }
+    const membrosData = perfil.empresa?.usuarios || [];
 
     return NextResponse.json({
       perfil: {
