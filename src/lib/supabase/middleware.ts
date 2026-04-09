@@ -133,21 +133,15 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // 3. Injeta headers personalizados para as API routes e atualiza a resposta
+  // 3. Injeta headers personalizados para as API routes
   if (user) {
     requestHeaders.set('x-user-id', user.id)
     requestHeaders.set('x-user-email', user.email || '')
-
-    // Recria a resposta com os novos headers injetados
-    supabaseResponse = NextResponse.next({
-      request: {
-        ...request,
-        headers: requestHeaders,
-      },
-    })
     
-    // Essencial: Repassar os cookies de volta na resposta
-    // (Isso mantém a sessão de cookies ativa)
+    // Se for bypass, garantir que o header x-bypass-email também esteja presente
+    if (user.id === 'test-bypass-active' && user.email) {
+      requestHeaders.set('x-bypass-email', user.email);
+    }
   }
 
   const isAuthRoute = request.nextUrl.pathname.startsWith(ROUTES.PAGES.AUTH.LOGIN)
@@ -155,10 +149,24 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(ROUTES.PAGES.DASHBOARD.ROOT) ||
     request.nextUrl.pathname.startsWith('/admin')
 
+  // 4. Lógica de Redirecionamento
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = ROUTES.PAGES.DASHBOARD.ROOT
-    return NextResponse.redirect(url)
+    // Criar redirecionamento mantendo os novos headers (embora redirect ignore a maioria dos custom headers no request)
+    const redirectResponse = NextResponse.redirect(url)
+    
+    // Se for um usuário de bypass, garantir que o cookie de bypass seja setado no redirecionamento
+    if (user.id === 'test-bypass-active' && user.email) {
+      redirectResponse.cookies.set('pacto-bypass-email', user.email, {
+        path: '/',
+        maxAge: 60 * 60 * 24,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      })
+    }
+    return redirectResponse
   }
 
   if (!user && isProtectedRoute) {
@@ -167,5 +175,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  return supabaseResponse
+  // 5. Resposta Final Única com Headers Injetados
+  // Isso garante que o 'requestHeaders' modificado chegue aos Server Components e API Routes
+  const finalResponse = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  // Sincronizar cookies do Supabase se houver
+  // (Caso a sessão real tenha sido atualizada)
+  if (supabaseResponse.cookies.getAll().length > 0) {
+    supabaseResponse.cookies.getAll().forEach(cookie => {
+      finalResponse.cookies.set(cookie)
+    })
+  }
+
+  // Se houver bypass ativo, garantir que o cookie final contenha o email
+  if (user?.id === 'test-bypass-active' && user.email) {
+    finalResponse.cookies.set('pacto-bypass-email', user.email, {
+      path: '/',
+      maxAge: 60 * 60 * 24,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    })
+  }
+
+  return finalResponse
 }

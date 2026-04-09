@@ -206,6 +206,8 @@ export async function getServerUser(): Promise<string | null> {
     const userIdHeader = headerList.get('x-user-id');
     const bypassEmail = headerList.get('x-bypass-email');
 
+    console.log(`[getServerUser] Request Context - userId: ${userIdHeader}, bypassEmail: ${bypassEmail}`);
+
     // Se tiver header de bypass ativo
     if (userIdHeader === 'test-bypass-active' && bypassEmail) {
       if (BYPASS_EMAILS.includes(bypassEmail)) {
