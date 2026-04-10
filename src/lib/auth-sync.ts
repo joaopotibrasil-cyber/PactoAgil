@@ -31,7 +31,6 @@ export async function syncUserSession(force = false): Promise<UserState | null> 
   }
 
   syncPromise = (async () => {
-  try {
     console.log('[auth-sync] Iniciando sincronização via /api/me...');
     const token = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
     const headers: Record<string, string> = {
@@ -54,12 +53,20 @@ export async function syncUserSession(force = false): Promise<UserState | null> 
 
     const data: UserState = await response.json();
 
-    // Persistência no LocalStorage
-    localStorage.setItem(AUTH_KEYS.USER_DATA, JSON.stringify(data));
+    // Persistência no LocalStorage (Mescla com dados existentes para não perder o token)
+    const existingDataRaw = localStorage.getItem(AUTH_KEYS.USER_DATA);
+    const existingData = existingDataRaw ? JSON.parse(existingDataRaw) : {};
+    const mergedData = { ...existingData, ...data };
+    
+    localStorage.setItem(AUTH_KEYS.USER_DATA, JSON.stringify(mergedData));
     
     if (data.access_token) {
       localStorage.setItem(AUTH_KEYS.ACCESS_TOKEN, data.access_token);
       console.log('[auth-sync] Access token persistido com sucesso.');
+    } else if (existingData.access_token && !mergedData.access_token) {
+      // Garante que o token continue no objeto de dados se já existia
+      mergedData.access_token = existingData.access_token;
+      localStorage.setItem(AUTH_KEYS.USER_DATA, JSON.stringify(mergedData));
     }
 
     console.log('[auth-sync] Dados do usuário sincronizados.');

@@ -76,6 +76,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
 
     fetchProfile();
+
+    // Listener para atualizações de perfil reativas
+    const handleUpdate = () => {
+      console.log('[DashboardLayout] Detectada atualização de perfil, recarregando...');
+      fetchProfile();
+    };
+
+    window.addEventListener('profile-updated', handleUpdate);
+    return () => window.removeEventListener('profile-updated', handleUpdate);
   }, []);
 
   const SidebarContent = ({ collapsed = false, onToggleCollapse }: { collapsed?: boolean, onToggleCollapse?: () => void }) => {
@@ -117,13 +126,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <>
         <div className={`px-6 py-6 border-b border-border-soft flex items-center justify-between ${collapsed ? 'justify-center px-2' : ''}`}>
           {!collapsed && (
-            <div>
-              <BrandLogo href={ROUTES.PAGES.DASHBOARD.ROOT} src={userProfile?.logoUrl} />
-              <p className="mt-3 text-xs font-mono uppercase tracking-[0.14em] text-foreground/60">Workspace Sindical</p>
+            <div className="flex flex-col gap-1">
+              <h2 className="text-sm font-bold tracking-tight text-foreground">Pacto Ágil</h2>
+              <p className="text-[0.6rem] font-mono uppercase tracking-[0.14em] text-foreground/60">Workspace Sindical</p>
             </div>
           )}
           {collapsed && (
-            <BrandLogo href={ROUTES.PAGES.DASHBOARD.ROOT} src={userProfile?.logoUrl} compact />
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
           )}
           <div className="flex items-center gap-2">
             {onToggleCollapse && (
@@ -210,6 +221,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </nav>
 
         <div className={`p-4 border-t border-border-soft space-y-3 ${collapsed ? 'px-2' : ''}`}>
+          {!collapsed && userProfile?.logoUrl && (
+            <div className="flex items-center justify-center p-2 mb-1 bg-surface-dim/30 rounded-xl border border-border-soft/50">
+               <BrandLogo src={userProfile.logoUrl} imageClassName="h-6 w-auto grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all" />
+            </div>
+          )}
+          
           <button
             onClick={handlePortal}
             disabled={isPortalLoading}
@@ -274,7 +291,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 min-w-0 flex flex-col min-h-screen">
         {/* Mobile Header */}
         <header className="lg:hidden px-4 py-4 border-b border-border-soft bg-surface/90 backdrop-blur-xl sticky top-0 z-20 flex items-center justify-between">
-          <BrandLogo compact href={ROUTES.PAGES.DASHBOARD.ROOT} src={userProfile?.logoUrl} />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+              <ShieldCheck className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-bold text-sm">Pacto Ágil</span>
+          </div>
           <button 
             onClick={toggleMobileMenu}
             className="p-2 text-foreground/80 hover:text-accent hover:bg-surface-dim rounded-lg transition-colors"

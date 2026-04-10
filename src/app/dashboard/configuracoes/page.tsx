@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Building2, CreditCard, Palette, ShieldCheck, Users, Mail, Loader2, Check } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/constants/routes";
+import { syncUserSession } from "@/lib/auth-sync";
 
 type Tab = "entidade" | "marca" | "usuarios" | "plano";
 
@@ -115,6 +116,10 @@ export default function ConfiguracoesPage() {
 
       if (!res.ok) throw new Error("Erro ao salvar");
       
+      // Sincronizar UI e Storage
+      await syncUserSession(true);
+      window.dispatchEvent(new CustomEvent('profile-updated'));
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -157,7 +162,17 @@ export default function ConfiguracoesPage() {
 
       if (!res.ok) throw new Error("Erro ao registrar logo");
         
+      // Sincronizar UI e Storage
+      await syncUserSession(true);
+      window.dispatchEvent(new CustomEvent('profile-updated'));
+
       setLogoUrl(publicUrl);
+      if (profile) {
+        setProfile({
+          ...profile,
+          empresa: { ...profile.empresa, logoUrl: publicUrl }
+        });
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -181,6 +196,10 @@ export default function ConfiguracoesPage() {
 
       if (!res.ok) throw new Error("Erro ao salvar marca");
       
+      // Sincronizar UI e Storage
+      await syncUserSession(true);
+      window.dispatchEvent(new CustomEvent('profile-updated'));
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
