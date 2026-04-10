@@ -19,7 +19,11 @@ export { getGroqClient as groq };
 /**
  * Função utilitária para completar chat com o Groq
  */
-export async function getGroqCompletion(prompt: string, systemMessage?: string) {
+export async function getGroqCompletion(
+  prompt: string, 
+  systemMessage?: string, 
+  model: string = "llama-3.3-70b-versatile"
+) {
   const client = getGroqClient();
   const completion = await client.chat.completions.create({
     messages: [
@@ -32,10 +36,10 @@ export async function getGroqCompletion(prompt: string, systemMessage?: string) 
         content: prompt,
       },
     ],
-    model: "llama-3.3-70b-versatile",
+    model: model,
     temperature: 0.7,
     max_tokens: 4096,
   });
 
-  return completion.choices[0].message.content;
+  return completion.choices[0].message.content || "";
 }
