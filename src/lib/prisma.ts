@@ -16,7 +16,14 @@ const prismaClientSingleton = () => {
   }
 
   // Configuração do Pool do Postgres
-  const pool = new pg.Pool({ connectionString });
+  // Supabase (e bancos cloud em geral) muitas vezes exige SSL. Definimos `rejectUnauthorized: false`
+  // para evitar erros de certificados ausentes/desatualizados no servidor de hospedagem.
+  const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
+  
+  const pool = new pg.Pool({ 
+    connectionString,
+    ssl: isLocal ? undefined : { rejectUnauthorized: false }
+  });
   const adapter = new PrismaPg(pool);
 
   return new PrismaClient({
