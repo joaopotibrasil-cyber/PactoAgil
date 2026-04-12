@@ -119,13 +119,6 @@ export async function GET(req: NextRequest) {
         .eq('id', perfil.id);
     }
 
-    // Verificar se já existe assinatura
-    const { data: assExistente } = await supabaseAdmin
-      .from('Assinatura')
-      .select('id')
-      .eq('empresaId', empresaId)
-      .single();
-
     const dadosAssinatura = {
       stripeCustomerId: subscription.customer as string,
       stripeSubscriptionId: subscription.id,
@@ -135,20 +128,16 @@ export async function GET(req: NextRequest) {
       atualizadoEm: new Date(),
     };
 
-    if (assExistente) {
-      await supabaseAdmin
-        .from('Assinatura')
-        .update(dadosAssinatura)
-        .eq('id', assExistente.id);
-    } else {
-      await supabaseAdmin
-        .from('Assinatura')
-        .insert({
-          id: crypto.randomUUID(),
-          empresaId,
-          ...dadosAssinatura,
-        });
-    }
+    // Usar upsert para evitar race condition (check-then-write)
+    await supabaseAdmin
+      .from('Assinatura')
+      .upsert({
+        empresaId,
+        ...dadosAssinatura,
+      }, {
+        onConflict: 'empresaId',
+        ignoreDuplicates: false,
+      });
 
     console.log(`[CHECKOUT_VERIFY] ✅ Assinatura ${tipoPlano} ativada para userId: ${userId}`);
 

@@ -125,6 +125,7 @@ export default function RootLayout({
               var CHUNK_RELOAD_KEY = 'pactoagil_chunk_reloaded';
               var CHUNK_RELOAD_TIMESTAMP = 'pactoagil_reload_time';
               var RELOAD_TIMEOUT = 5000; // 5 segundos
+              var ERROR_COUNT_KEY = 'pactoagil_error_count';
 
               // Função para hard refresh real (limpa cache e recarrega)
               function forceHardRefresh() {
@@ -136,16 +137,13 @@ export default function RootLayout({
                     }
                   });
                 }
-                // Força recarregamento ignorando cache
-                window.location.replace(
-                  window.location.protocol + '//' +
-                  window.location.host +
-                  window.location.pathname +
-                  window.location.search +
-                  (window.location.search ? '&' : '?') +
-                  'nocache=' +
-                  Date.now()
-                );
+                // Limpa storage
+                try {
+                  sessionStorage.clear();
+                  localStorage.removeItem('pacto-theme');
+                } catch(_) {}
+                // Redireciona para página de refresh forçado
+                window.location.href = '/force-refresh.html?ts=' + Date.now();
               }
 
               // Verifica se já tentou recarregar há menos de 5 segundos (evita loop)
@@ -157,25 +155,52 @@ export default function RootLayout({
                 return true;
               }
 
+              // Handler global de erros - detecta scripts 404
               window.addEventListener('error', function(e) {
-                if (e.message && (e.message.includes('ChunkLoadError') || e.message.includes('Loading chunk') || e.message.includes('Failed to fetch dynamically imported module'))) {
-                  if (canReload()) {
-                    sessionStorage.setItem(CHUNK_RELOAD_KEY, 'true');
-                    sessionStorage.setItem(CHUNK_RELOAD_TIMESTAMP, Date.now().toString());
-                    console.warn('[PactoÁgil] ChunkLoadError detectado - forçando hard refresh...');
+                // Detecta erro de script 404 (MIME type error ou ChunkLoadError)
+                var isScript404 = e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static');
+                var isChunkLoadError = e.message && (
+                  e.message.includes('ChunkLoadError') ||
+                  e.message.includes('Loading chunk') ||
+                  e.message.includes('Failed to fetch dynamically imported module') ||
+                  e.message.includes("MIME type")
+                );
+
+                if (isScript404 || isChunkLoadError) {
+                  // Conta erros para decidir se faz refresh total
+                  var errorCount = parseInt(sessionStorage.getItem(ERROR_COUNT_KEY) || '0') + 1;
+                  sessionStorage.setItem(ERROR_COUNT_KEY, errorCount.toString());
+                  sessionStorage.setItem(CHUNK_RELOAD_TIMESTAMP, Date.now().toString());
+
+                  if (errorCount >= 1) {
+                    console.warn('[PactoÁgil] Script 404 ou ChunkLoadError detectado (' + errorCount + ') - forçando refresh total...');
+                    console.warn('[PactoÁgil] Script:', e.target ? e.target.src : 'unknown');
                     forceHardRefresh();
                   }
                 }
               });
 
+              // Handler de promises não tratadas
               window.addEventListener('unhandledrejection', function(e) {
-                if (e.reason && e.reason.message && (e.reason.message.includes('ChunkLoadError') || e.reason.message.includes('Loading chunk') || e.reason.message.includes('Failed to fetch dynamically imported module'))) {
+                if (e.reason && e.reason.message && (
+                  e.reason.message.includes('ChunkLoadError') ||
+                  e.reason.message.includes('Loading chunk') ||
+                  e.reason.message.includes('Failed to fetch dynamically imported module') ||
+                  e.reason.message.includes("MIME type")
+                )) {
                   if (canReload()) {
-                    sessionStorage.setItem(CHUNK_RELOAD_KEY, 'true');
-                    sessionStorage.setItem(CHUNK_RELOAD_TIMESTAMP, Date.now().toString());
-                    console.warn('[PactoÁgil] ChunkLoadError (promise) detectado - forçando hard refresh...');
+                    console.warn('[PactoÁgil] ChunkLoadError (promise) detectado - forçando refresh...');
                     forceHardRefresh();
                   }
+                }
+              });
+
+              // Detecta quando o próprio HTML está desatualizado (version mismatch)
+              window.addEventListener('load', function() {
+                // Se houver erros acumulados do sessionStorage anterior, limpa
+                var previousErrors = sessionStorage.getItem(ERROR_COUNT_KEY);
+                if (previousErrors && parseInt(previousErrors) > 0) {
+                  sessionStorage.removeItem(ERROR_COUNT_KEY);
                 }
               });
             `,

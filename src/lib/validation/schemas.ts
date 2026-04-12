@@ -62,6 +62,15 @@ export const aiAnalyzeSchema = z.object({
   scenario: z.string().optional(),
 });
 
+const clausulaSchema = z.object({
+  key: z.string(),
+  label: z.string(),
+  value: z.string(),
+  status: z.string(),
+  clause: z.string(),
+  category: z.string().optional(),
+});
+
 export const negotiationSchema = z.object({
   id: z.string().optional(),
   titulo: z.string().min(1, 'Título é obrigatório'),
@@ -70,7 +79,7 @@ export const negotiationSchema = z.object({
   dataBase: z.string().datetime().optional(),
   status: z.enum(['RASCUNHO', 'EM_ANALISE', 'FINALIZADO']).default('RASCUNHO'),
   instrumento: z.enum(['ACT', 'CCT']).default('ACT'),
-  clausulas: z.array(z.any()).default([]),
+  clausulas: z.array(clausulaSchema).default([]),
   minuta: z.string().default(''),
 });
 

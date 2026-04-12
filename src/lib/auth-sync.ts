@@ -19,14 +19,24 @@ export const AUTH_KEYS = {
 
 let syncPromise: Promise<UserState | null> | null = null;
 let lastSyncTime = 0;
+let lastSyncResult: UserState | null = null;
 
 /**
  * Busca os dados do usuário atual e os persiste no LocalStorage (deduplicado).
+ * Previne race conditions e requisições duplicadas.
  */
 export async function syncUserSession(force = false): Promise<UserState | null> {
   const now = Date.now();
-  if (!force && syncPromise && (now - lastSyncTime < 5000)) {
-    console.log('[auth-sync] Usando cache do sincronizador (evitando loop).');
+
+  // Retorna resultado em cache se válido (5 segundos)
+  if (!force && lastSyncResult && (now - lastSyncTime < 5000)) {
+    console.log('[auth-sync] Usando cache do sincronizador (< 5s).');
+    return lastSyncResult;
+  }
+
+  // Evita race condition - retorna promise pendente se existir
+  if (!force && syncPromise) {
+    console.log('[auth-sync] Reutilizando requisição pendente.');
     return syncPromise;
   }
 
@@ -57,9 +67,9 @@ export async function syncUserSession(force = false): Promise<UserState | null> 
     const existingDataRaw = localStorage.getItem(AUTH_KEYS.USER_DATA);
     const existingData = existingDataRaw ? JSON.parse(existingDataRaw) : {};
     const mergedData = { ...existingData, ...data };
-    
+
     localStorage.setItem(AUTH_KEYS.USER_DATA, JSON.stringify(mergedData));
-    
+
     if (data.access_token) {
       localStorage.setItem(AUTH_KEYS.ACCESS_TOKEN, data.access_token);
       console.log('[auth-sync] Access token persistido com sucesso.');
@@ -71,8 +81,16 @@ export async function syncUserSession(force = false): Promise<UserState | null> 
 
     console.log('[auth-sync] Dados do usuário sincronizados.');
     return data;
-  })().catch(err => {
+  })().then(result => {
+    if (result) {
+      lastSyncResult = result;
+      lastSyncTime = Date.now();
+    }
+    syncPromise = null;
+    return result;
+  }).catch(err => {
     console.error('[auth-sync] Erro crítico na sincronização:', err);
+    syncPromise = null;
     return null;
   });
 

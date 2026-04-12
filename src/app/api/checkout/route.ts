@@ -127,9 +127,10 @@ export async function POST(req: NextRequest) {
 
 
     return NextResponse.json({ url });
-  } catch (error: any) {
-    console.error('[STRIPE_CHECKOUT_ERROR]', error);
-    return new NextResponse(error.message || 'Internal Error', { status: 500 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal Error';
+    console.error('[STRIPE_CHECKOUT_ERROR]', message);
+    return new NextResponse(message, { status: 500 });
   }
 }
 
@@ -170,8 +171,9 @@ export async function GET(req: NextRequest) {
     }
 
     return redirect(ROUTES.PAGES.PRICING);
-  } catch (error: any) {
-    console.error('[STRIPE_CHECKOUT_GET_ERROR]', error);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal Error';
+    console.error('[STRIPE_CHECKOUT_GET_ERROR]', message);
     return redirect(`${ROUTES.PAGES.PRICING}?error=checkout_failed`);
   }
 }

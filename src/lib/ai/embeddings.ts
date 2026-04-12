@@ -7,10 +7,9 @@ const getGenAI = () => {
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const apiKey = process.env.GOOGLE_AI_API_KEY;
-  
+
   if (!apiKey) {
-    console.warn("GOOGLE_AI_API_KEY não configurada. Usando vetor fake para testes.");
-    return new Array(768).fill(0);
+    throw new Error('GOOGLE_AI_API_KEY is not configured. Please set the environment variable.');
   }
 
   try {

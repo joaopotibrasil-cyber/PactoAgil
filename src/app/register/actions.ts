@@ -8,10 +8,9 @@ import { ROUTES } from '@/constants/routes';
 const REQUIRED_ENV_VARS = ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'] as const;
 
 function validateEnv(): void {
-  for (const envVar of REQUIRED_ENV_VARS) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+  const missingVars = REQUIRED_ENV_VARS.filter((envVar) => !process.env[envVar]);
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 }
 
@@ -26,8 +25,7 @@ const registerSchema = z.object({
   planKey: z.string().optional(),
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SupabaseAdminClient = SupabaseClient<any, 'public', any>;
+type SupabaseAdminClient = SupabaseClient;
 
 export type RegisterResult =
   | { success: true; redirect: string; error?: never }
@@ -109,8 +107,8 @@ export async function registerAction(formData: FormData): Promise<RegisterResult
 
     const supabase = await createClient();
     const supabaseAdmin = createSupabaseAdmin(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+      process.env.SUPABASE_SERVICE_ROLE_KEY as string
     );
 
     const rawData = Object.fromEntries(formData.entries());

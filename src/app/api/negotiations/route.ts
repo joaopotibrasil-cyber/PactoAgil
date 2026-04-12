@@ -140,13 +140,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Deletar garantindo que pertence à empresa
-    await prisma.negociacao.delete({
-      where: { id, empresaId: empresa.id },
-    });
-
-    return NextResponse.json({ success: true });
+    try {
+      await prisma.negociacao.delete({
+        where: { id, empresaId: empresa.id },
+      });
+      return NextResponse.json({ success: true });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Negociação não encontrada' }, { status: 404 });
+      }
+      throw error;
+    }
   } catch (error: any) {
     console.error("Erro ao deletar negociação:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

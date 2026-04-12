@@ -1,6 +1,14 @@
 /**
  * Rate Limiting simples em memória para Next.js
- * Nota: Em produção com múltiplas instâncias, use Redis
+ *
+ * ⚠️ ATENÇÃO: Em produção com múltiplas instâncias (Vercel, AWS Lambda),
+ * este rate limiting NÃO funciona corretamente porque cada instância tem
+ * seu próprio memory store. Para produção, use Redis (Upstash, etc.)
+ *
+ * Exemplo com Upstash Redis:
+ * import { Redis } from '@upstash/redis'
+ * const redis = new Redis({ url: process.env.UPSTASH_REDIS_REST_URL, token: process.env.UPSTASH_REDIS_REST_TOKEN })
+ * // ... usar redis.incr() ao invés de Map
  */
 
 type RateLimitEntry = {
@@ -67,14 +75,18 @@ export function rateLimit(
 }
 
 // Limpar entradas antigas periodicamente (a cada 5 minutos)
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store.entries()) {
-    if (now > entry.resetTime) {
-      store.delete(key);
+// Nota: Em serverless, múltiplas instâncias criam múltiplos intervals
+// Este cleanup só funciona dentro da mesma instância
+if (typeof global !== 'undefined' && !(global as any).__rateLimitInterval) {
+  (global as any).__rateLimitInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of store.entries()) {
+      if (now > entry.resetTime) {
+        store.delete(key);
+      }
     }
-  }
-}, 5 * 60 * 1000);
+  }, 5 * 60 * 1000);
+}
 
 // Rate limits específicos por endpoint
 export const RATE_LIMITS = {
