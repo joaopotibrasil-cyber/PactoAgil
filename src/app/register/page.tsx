@@ -8,7 +8,7 @@ import { FullPageLoading } from "@/components/ui/FullPageLoading";
 
 import Link from "next/link";
 import { BrandLogo } from "@/components/ui/BrandLogo";
-import { formatCNPJ } from "@/lib/validation/schemas";
+import { formatCNPJ, formatEmail, formatTitleCase, formatCompanyName, formatPasswordSafe, formatTitleCase as formatFuncionalidade } from "@/lib/validation/schemas";
 import { ROUTES } from "@/constants/routes";
 import { syncUserSession } from "@/lib/auth-sync";
 
@@ -33,6 +33,11 @@ function RegisterForm() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [manualCompanyName, setManualCompanyName] = useState("");
   const [manualCnpj, setManualCnpj] = useState("");
+  
+  // Novos estados para Inputs Controlados
+  const [fullName, setFullName] = useState("");
+  const [password, setPassword] = useState("");
+  const [funcionalidade, setFuncionalidade] = useState("");
 
   // Hook de Debounce
   const debouncedEmail = useDebounce(email, 600);
@@ -150,6 +155,8 @@ function RegisterForm() {
                 type="text"
                 required
                 placeholder="Seu nome"
+                value={fullName}
+                onChange={(e) => setFullName(formatTitleCase(e.target.value))}
                 className="w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25"
               />
             </div>
@@ -163,7 +170,7 @@ function RegisterForm() {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(formatEmail(e.target.value))}
                   placeholder="exemplo@sindicato.org.br"
                   className="w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25"
                 />
@@ -208,6 +215,8 @@ function RegisterForm() {
                 name="password"
                 type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(formatPasswordSafe(e.target.value))}
                 placeholder="••••••••"
                 className="w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25"
               />
@@ -239,7 +248,7 @@ function RegisterForm() {
                 required
                 disabled={!!selectedCompany}
                 value={selectedCompany ? selectedCompany.nome : manualCompanyName}
-                onChange={(e) => setManualCompanyName(e.target.value)}
+                onChange={(e) => setManualCompanyName(formatCompanyName(e.target.value))}
                 placeholder="Razão Social ou Nome Fantasia"
                 className={`w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25 ${selectedCompany ? 'opacity-70 cursor-not-allowed bg-accent/5' : ''}`}
               />
@@ -268,6 +277,8 @@ function RegisterForm() {
                   name="funcionalidade"
                   type="text"
                   required
+                  value={funcionalidade}
+                  onChange={(e) => setFuncionalidade(formatFuncionalidade(e.target.value))}
                   placeholder="Atuação / Setor"
                   className="w-full bg-background/50 border border-border-soft rounded-2xl px-5 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all placeholder:text-foreground/25"
                 />

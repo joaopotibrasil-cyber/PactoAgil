@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2, ArrowRight } from "lucide-react";
+import { formatEmail } from "@/lib/validation/schemas";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -82,7 +83,7 @@ export default function ForgotPasswordPage() {
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(formatEmail(e.target.value))}
                   placeholder="voce@sindicato.org.br"
                   className="w-full rounded-[1.25rem] border border-border-soft bg-background/50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all placeholder:text-foreground/30"
                   disabled={loading}

@@ -150,3 +150,69 @@ export function formatCNPJ(value: string): string {
     .replace(/(\d{4})(\d)/, '$1-$2')
     .substring(0, 18);
 }
+
+/**
+ * Formata CPF para exibição
+ */
+export function formatCPF(value: string): string {
+  const cleanValue = value.replace(/\D/g, '');
+  return cleanValue
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .substring(0, 14);
+}
+
+/**
+ * Formata Telefone (Fixo e Celular)
+ */
+export function formatPhone(value: string): string {
+  const cleanValue = value.replace(/\D/g, '');
+  if (cleanValue.length <= 10) {
+    return cleanValue
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .substring(0, 14);
+  }
+  return cleanValue
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+    .substring(0, 15);
+}
+
+/**
+ * Formatar Nome para Title Case (Maiúscula a cada palavra)
+ */
+export function formatTitleCase(value: string): string {
+  return value
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      if (word.length > 2) {
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }
+      return word;
+    })
+    .join(' ');
+}
+
+/**
+ * Limpar e forçar formatação de e-mail (remove espaços, tudo minúsculo)
+ */
+export function formatEmail(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, '');
+}
+
+/**
+ * Limpar e forçar formatação de Senha (remove espaços)
+ */
+export function formatPasswordSafe(value: string): string {
+  return value.replace(/\s+/g, '');
+}
+
+/**
+ * Formatar Nome de Empresa (Maiúsculas)
+ */
+export function formatCompanyName(value: string): string {
+  return value.toUpperCase();
+}

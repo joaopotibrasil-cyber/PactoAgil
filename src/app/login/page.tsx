@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { login } from "./actions";
 import { syncUserSession } from "@/lib/auth-sync";
+import { formatEmail, formatPasswordSafe } from "@/lib/validation/schemas";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ROUTES } from "@/constants/routes";
 import { ArrowRight, Lock, CreditCard, Loader2 } from "lucide-react";
@@ -15,6 +16,9 @@ function LoginContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  
   const searchParams = useSearchParams();
   const router = useRouter();
   const plan = searchParams.get("plan");
@@ -153,6 +157,8 @@ function LoginContent() {
                     name="email"
                     type="email"
                     required
+                    value={email}
+                    onChange={(e) => setEmail(formatEmail(e.target.value))}
                     placeholder="voce@sindicato.org.br"
                     className="w-full rounded-[1.25rem] border border-border-soft bg-background/50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all placeholder:text-foreground/30"
                   />
@@ -171,6 +177,8 @@ function LoginContent() {
                     name="password"
                     type="password"
                     required
+                    value={password}
+                    onChange={(e) => setPassword(formatPasswordSafe(e.target.value))}
                     placeholder="••••••••"
                     className="w-full rounded-[1.25rem] border border-border-soft bg-background/50 px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all placeholder:text-foreground/30 font-mono tracking-widest"
                   />
