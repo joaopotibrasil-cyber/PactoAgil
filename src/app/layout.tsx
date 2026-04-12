@@ -85,13 +85,13 @@ export default function RootLayout({
                   });
               }
 
-              /* Correção automática para erro de ChunkLoadError após deploy - com Hard Refresh */
+              /* Correção automática para erro de ChunkLoadError após deploy - com Hard Refresh nativo */
               var CHUNK_RELOAD_KEY = 'pactoagil_chunk_reloaded';
               var CHUNK_RELOAD_TIMESTAMP = 'pactoagil_reload_time';
               var RELOAD_TIMEOUT = 5000; // 5 segundos
               var ERROR_COUNT_KEY = 'pactoagil_error_count';
 
-              // Função para hard refresh real (limpa cache e recarrega)
+              // Função para hard refresh real (no mesmo documento, evitando perda de contexto)
               function forceHardRefresh() {
                 // Limpa caches do service worker se existir
                 if ('caches' in window) {
@@ -106,8 +106,10 @@ export default function RootLayout({
                   sessionStorage.clear();
                   localStorage.removeItem('pacto-theme');
                 } catch(_) {}
-                // Redireciona para página de refresh forçado
-                window.location.href = '/force-refresh.html?ts=' + Date.now();
+                
+                var currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.set('nocache', Date.now());
+                window.location.href = currentUrl.toString();
               }
 
               // Verifica se já tentou recarregar há menos de 5 segundos (evita loop)
@@ -119,7 +121,7 @@ export default function RootLayout({
                 return true;
               }
 
-              // Handler global de erros - detecta scripts 404
+              // Handler global de erros - detecta scripts 404. O "{ capture: true }" é crucial para tags script
               window.addEventListener('error', function(e) {
                 // Detecta erro de script 404 (MIME type error ou ChunkLoadError)
                 var isScript404 = e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static');
@@ -131,20 +133,21 @@ export default function RootLayout({
                 );
 
                 if (isScript404 || isChunkLoadError) {
+                  if (!canReload()) return;
+                  
                   // Conta erros para decidir se faz refresh total
                   var errorCount = parseInt(sessionStorage.getItem(ERROR_COUNT_KEY) || '0') + 1;
                   sessionStorage.setItem(ERROR_COUNT_KEY, errorCount.toString());
                   sessionStorage.setItem(CHUNK_RELOAD_TIMESTAMP, Date.now().toString());
 
                   if (errorCount >= 1) {
-                    console.warn('[PactoÁgil] Script 404 ou ChunkLoadError detectado (' + errorCount + ') - forçando refresh total...');
-                    console.warn('[PactoÁgil] Script:', e.target ? e.target.src : 'unknown');
+                    console.warn('[PactoÁgil] Script 404 ou ChunkLoadError detectado (' + errorCount + ') - recarregando página com NOCACHE...');
                     forceHardRefresh();
                   }
                 }
-              });
+              }, true);
 
-              // Handler de promises não tratadas
+              // Handler de promises não tratadas (onde o Webpack joga o ChunkLoadError)
               window.addEventListener('unhandledrejection', function(e) {
                 if (e.reason && e.reason.message && (
                   e.reason.message.includes('ChunkLoadError') ||
@@ -153,7 +156,8 @@ export default function RootLayout({
                   e.reason.message.includes("MIME type")
                 )) {
                   if (canReload()) {
-                    console.warn('[PactoÁgil] ChunkLoadError (promise) detectado - forçando refresh...');
+                    console.warn('[PactoÁgil] ChunkLoadError (promise) detectado - forçando cache buster...');
+                    sessionStorage.setItem(CHUNK_RELOAD_TIMESTAMP, Date.now().toString());
                     forceHardRefresh();
                   }
                 }

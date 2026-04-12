@@ -105,14 +105,10 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // Evitar que servidores agressivos (ex: LiteSpeed Cache no Hostinger)
+      // salvem e entreguem páginas HTML antigas que dependem de chunks JavaScript deletados
       {
-        source: '/:all*',
-        has: [
-          {
-            type: 'query',
-            key: 'nocache',
-          },
-        ],
+        source: '/((?!_next/static|_next/image|favicon.ico|manifest.json).*)',
         headers: [
           {
             key: 'Cache-Control',
@@ -125,6 +121,10 @@ const nextConfig: NextConfig = {
           {
             key: 'Expires',
             value: '0',
+          },
+          {
+            key: 'X-LiteSpeed-Cache-Control',
+            value: 'no-cache',
           },
         ],
       },
