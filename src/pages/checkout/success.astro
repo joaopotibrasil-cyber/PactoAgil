@@ -1,0 +1,23 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Assinatura confirmada - Pacto Ágil">
+  <main class="min-h-screen flex items-center justify-center px-6">
+    <section class="section-shell w-full max-w-2xl p-8 md:p-12 text-center space-y-6">
+      <p class="text-xs font-mono uppercase tracking-[0.2em] text-accent">Pagamento confirmado</p>
+      <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
+        Assinatura ativada com sucesso.
+      </h1>
+      <p class="text-foreground/70">
+        Seu plano foi processado e o acesso será refletido no painel em instantes.
+      </p>
+      <a
+        href="/dashboard"
+        class="inline-flex items-center justify-center rounded-full bg-primary text-primary-foreground px-7 py-3 text-sm font-semibold magnetic"
+      >
+        Ir para o dashboard
+      </a>
+    </section>
+  </main>
+</BaseLayout>

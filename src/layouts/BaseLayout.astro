@@ -1,0 +1,106 @@
+---
+import '../styles/globals.css';
+
+
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { 
+  title = 'Pacto Ágil - Negociações coletivas com inteligência',
+  description = 'Micro-SaaS para sindicatos e escritórios trabalhistas: análise, criação e gestão de ACT e CCT com fluxo inteligente.'
+} = Astro.props;
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    
+    <!-- Meta Cache-Control -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/logo-pacto-agil-new.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Fonts (Replicando next/font) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style is:global>
+      :root {
+        --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        --font-serif: 'Playfair Display', serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+    </style>
+
+    <!-- Theme Detection Script -->
+    <script is:inline>
+      (function() {
+        try {
+          var stored = localStorage.getItem('pacto-theme');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'dark' || (!stored && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (_) {}
+      })();
+    </script>
+  </head>
+  <body class="font-sans antialiased bg-background text-foreground min-h-screen relative flex flex-col selection:bg-accent selection:text-accent-foreground overflow-x-hidden">
+    <div class="bg-noise"></div>
+    <ThemeToggle client:idle />
+    
+    <slot />
+
+    <!-- ChunkLoadError & SW Scripts -->
+    <script is:inline>
+      /* Service Worker */
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(reg) {
+            reg.addEventListener('updatefound', function() {
+              var newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', function() {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+          });
+      }
+
+      /* Hard Refresh logic */
+      function forceHardRefresh() {
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            for (var i = 0; i < names.length; i++) caches.delete(names[i]);
+          });
+        }
+        var url = new URL(window.location.href);
+        url.searchParams.set('nocache', Date.now());
+        window.location.href = url.toString();
+      }
+
+      window.addEventListener('error', function(e) {
+        var isChunkError = e.message && (e.message.includes('ChunkLoadError') || e.message.includes('MIME type'));
+        if (isChunkError) forceHardRefresh();
+      }, true);
+    </script>
+  </body>
+</html>

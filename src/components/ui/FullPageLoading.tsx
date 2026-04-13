@@ -1,6 +1,5 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { BrandLogo } from "./BrandLogo";

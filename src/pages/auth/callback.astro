@@ -1,0 +1,4 @@
+---
+const invited = Astro.url.searchParams.get("invited");
+return Astro.redirect(invited === "true" ? "/dashboard/members?invited=true" : "/dashboard");
+---

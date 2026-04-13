@@ -9,7 +9,7 @@ import pg from 'pg';
  */
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = import.meta.env.DATABASE_URL;
   
   if (!connectionString) {
     throw new Error('DATABASE_URL is not defined');
@@ -28,7 +28,7 @@ const prismaClientSingleton = () => {
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: ['error'],
   });
 }
 
@@ -39,7 +39,7 @@ declare global {
 // Persistência da instância para gerenciar hot-reload em desenvolvimento
 const client = globalThis.prisma ?? prismaClientSingleton();
 
-if (process.env.NODE_ENV !== 'production') {
+if (!import.meta.env.PROD) {
   globalThis.prisma = client;
 }
 

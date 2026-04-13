@@ -4,11 +4,11 @@ let _groq: Groq | null = null;
 
 function getGroqClient(): Groq {
   if (!_groq) {
-    if (!process.env.GROQ_API_KEY) {
+    if (!import.meta.env.GROQ_API_KEY) {
       throw new Error('GROQ_API_KEY is missing from environment variables');
     }
     _groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
+      apiKey: import.meta.env.GROQ_API_KEY,
     });
   }
   return _groq;

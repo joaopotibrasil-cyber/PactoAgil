@@ -1,0 +1,15 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { NegociacoesPageContent } from "@/components/dashboard/NegociacoesPageContent";
+import { supabase } from "@/lib/supabase/astro";
+
+const { data: { user }, error } = await supabase(Astro.cookies).auth.getUser();
+
+if (error || !user) {
+  return Astro.redirect("/login");
+}
+---
+
+<DashboardLayout title="Negociações - Pacto Ágil">
+  <NegociacoesPageContent client:only="react" />
+</DashboardLayout>
