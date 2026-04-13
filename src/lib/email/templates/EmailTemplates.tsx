@@ -118,7 +118,7 @@ const styles = {
 };
 
 export const ActivationTemplate: React.FC<TemplateProps> = ({ nome, url }) => {
-  const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
+  const logoUrl = `${import.meta.env.PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
 
   return (
     <html lang="pt-BR">
@@ -160,7 +160,7 @@ export const ActivationTemplate: React.FC<TemplateProps> = ({ nome, url }) => {
 };
 
 export const MemberInviteTemplate: React.FC<InviteProps> = ({ nomeConvidado, nomeAdmin, nomeEmpresa, url }) => {
-  const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
+  const logoUrl = `${import.meta.env.PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
 
   return (
     <html lang="pt-BR">
@@ -202,7 +202,7 @@ export const MemberInviteTemplate: React.FC<InviteProps> = ({ nomeConvidado, nom
 };
 
 export const WelcomeTemplate: React.FC<TemplateProps> = ({ nome, url }) => {
-  const logoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
+  const logoUrl = `${import.meta.env.PUBLIC_APP_URL}/logo-pacto-agil-striking.png`;
 
   return (
     <html lang="pt-BR">

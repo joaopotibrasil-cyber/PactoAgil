@@ -1,0 +1,78 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { MembersPageContent } from "@/components/dashboard/MembersPageContent";
+import { createSupabaseClient } from "@/lib/supabase/astro";
+import prisma from "@/lib/prisma";
+
+const supabase = createSupabaseClient(Astro.cookies);
+const { data: { user }, error } = await supabase.auth.getUser();
+
+if (error || !user) {
+  return Astro.redirect("/login");
+}
+
+const PLAN_LIMITS: Record<string, number> = {
+  "DESCOBERTA": 2,
+  "MOVIMENTO": 3,
+  "DIRECAO": 7,
+  "LIDERANCA": 10,
+  "GRATIS": 2,
+};
+
+// Buscar perfil com empresa via Prisma (acesso direto ao DB, sem RLS)
+const perfil = await prisma.perfil.findUnique({
+  where: { userId: user.id },
+  include: { empresa: true }
+});
+
+// Se sem empresa, renderiza estado vazio
+const hasEmpresa = !!(perfil?.empresaId);
+let membros: any[] = [];
+let empresaNome = "Sua empresa";
+let planKey = "GRATIS";
+let limit = 2;
+let currentMembers = 0;
+
+if (hasEmpresa) {
+  const assinatura = await prisma.assinatura.findUnique({
+    where: { empresaId: perfil!.empresaId! }
+  });
+
+  membros = await prisma.perfil.findMany({
+    where: { empresaId: perfil!.empresaId! },
+    select: { id: true, nomeCompleto: true, email: true, role: true }
+  });
+
+  empresaNome = perfil!.empresa?.nome || "Sua empresa";
+  planKey = (assinatura?.tipoPlano || "GRATIS").toUpperCase();
+  limit = PLAN_LIMITS[planKey] || 2;
+  currentMembers = membros.length;
+}
+
+const isLimitReached = currentMembers >= limit;
+---
+
+<DashboardLayout title="Colaboradores - Pacto Ágil">
+  {!hasEmpresa ? (
+    <div class="flex flex-col items-center justify-center h-[60vh] text-center p-8 bg-surface/40 backdrop-blur-xl rounded-[2.5rem] border border-border-soft">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-16 h-16 text-accent opacity-20 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <h1 class="text-2xl font-semibold mb-2">Empresa não encontrada</h1>
+      <p class="text-foreground/60 max-w-sm">
+        Você ainda não está vinculado a uma organização corporativa ativa.
+        Entre em contato com o administrador da sua entidade.
+      </p>
+    </div>
+  ) : (
+    <MembersPageContent
+      client:only="react"
+      membros={membros}
+      empresaNome={empresaNome}
+      planKey={planKey}
+      limit={limit}
+      currentMembers={currentMembers}
+      isLimitReached={isLimitReached}
+    />
+  )}
+</DashboardLayout>

@@ -1,0 +1,15 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { CalendarioPageContent } from "@/components/dashboard/CalendarioPageContent";
+import { supabase } from "@/lib/supabase/astro";
+
+const { data: { user }, error } = await supabase(Astro.cookies).auth.getUser();
+
+if (error || !user) {
+  return Astro.redirect("/login");
+}
+---
+
+<DashboardLayout title="Calendário de Datas-Base - Pacto Ágil">
+  <CalendarioPageContent client:only="react" />
+</DashboardLayout>

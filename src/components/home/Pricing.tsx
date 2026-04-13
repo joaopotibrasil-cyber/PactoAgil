@@ -2,7 +2,6 @@
 
 import { Check, Loader2 } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { ROUTES } from "@/constants/routes";
 
 const plans = [
@@ -54,7 +53,6 @@ const plans = [
 
 export function Pricing() {
   const [loading, setLoading] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleCheckout = async (planKey: string) => {
     try {
@@ -70,7 +68,7 @@ export function Pricing() {
 
       if (response.status === 401) {
         // Redireciona para o formulário de registro completo se não estiver logado
-        router.push(`${ROUTES.PAGES.AUTH.REGISTER}?plan=${planKey}`);
+        window.location.href = `${ROUTES.PAGES.AUTH.REGISTER}?plan=${planKey}`;
         return;
       }
 
@@ -92,8 +90,8 @@ export function Pricing() {
 
 
   return (
-    <section id="pricing" className="py-28 md:py-32">
-      <div className="mx-auto w-[min(1200px,92%)] section-shell p-7 md:p-10 lg:p-12">
+    <section id="pricing" className="py-20 sm:py-28 md:py-32 overflow-x-hidden">
+      <div className="mx-auto w-[min(1200px,calc(100%-1.5rem))] sm:w-[min(1200px,92%)] section-shell p-5 sm:p-7 md:p-10 lg:p-12">
         <p className="text-xs font-mono uppercase tracking-[0.24em] text-accent mb-4">Planos</p>
         <h2 className="text-3xl md:text-5xl font-semibold tracking-tight max-w-4xl mb-10 text-white">
           Controle de acesso por nivel com espaco para sua equipe crescer sem perder governanca.
@@ -103,9 +101,9 @@ export function Pricing() {
           {plans.map((plan) => (
             <article
               key={plan.name}
-              className={`rounded-[2rem] border p-6 flex flex-col gap-5 ${
+              className={`rounded-[2rem] border p-6 flex flex-col gap-5 min-w-0 ${
                 plan.featured
-                  ? "bg-primary text-primary-foreground border-primary neo-ring scale-[1.02]"
+                  ? "bg-primary text-primary-foreground border-primary neo-ring md:scale-[1.02]"
                   : "bg-surface border-border-soft"
               }`}
             >
@@ -152,3 +150,4 @@ export function Pricing() {
     </section>
   );
 }
+

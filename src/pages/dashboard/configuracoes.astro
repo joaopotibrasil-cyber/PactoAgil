@@ -1,0 +1,15 @@
+---
+import DashboardLayout from "@/layouts/DashboardLayout.astro";
+import { ConfiguracoesPageContent } from "@/components/dashboard/ConfiguracoesPageContent";
+import { supabase } from "@/lib/supabase/astro";
+
+const { data: { user }, error } = await supabase(Astro.cookies).auth.getUser();
+
+if (error || !user) {
+  return Astro.redirect("/login");
+}
+---
+
+<DashboardLayout title="Configurações - Pacto Ágil">
+  <ConfiguracoesPageContent client:only="react" />
+</DashboardLayout>

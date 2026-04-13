@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
@@ -97,8 +96,8 @@ export function Features() {
   }, []);
 
   return (
-    <section id="features" ref={containerRef} className="relative py-28 md:py-32">
-      <div className="mx-auto w-[min(1200px,92%)] section-shell p-7 md:p-10 lg:p-12">
+    <section id="features" ref={containerRef} className="relative py-20 sm:py-28 md:py-32 overflow-x-hidden">
+      <div className="mx-auto w-[min(1200px,calc(100%-1.5rem))] sm:w-[min(1200px,92%)] section-shell p-5 sm:p-7 md:p-10 lg:p-12">
         <div className="mb-11">
           <p className="text-xs font-mono uppercase tracking-[0.24em] text-accent mb-4">Features</p>
           <h2 className="text-3xl md:text-5xl font-semibold tracking-tight max-w-4xl">
@@ -109,12 +108,10 @@ export function Features() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <article className="feature-in group relative rounded-[2rem] border border-border-soft bg-surface p-6 shadow-lg overflow-hidden h-full flex flex-col">
             <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-700 pointer-events-none">
-              <Image 
+              <img 
                 src="/step-01.png" 
                 alt="Background" 
-                fill 
-                sizes="33vw"
-                className="object-cover scale-110 group-hover:scale-100 transition-transform duration-1000" 
+                className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-1000" 
               />
             </div>
             <div className="relative z-10 flex flex-col h-full">
@@ -157,8 +154,8 @@ export function Features() {
             <h3 className="text-lg font-semibold mb-1">Cursor Protocol Scheduler</h3>
             <p className="text-sm text-foreground/70 mb-5">Agenda de data-base com ativacao visual e registro imediato da equipe.</p>
 
-            <div className="rounded-2xl border border-border-soft p-4 bg-surface-dim">
-              <div className="grid grid-cols-7 gap-2 mb-4">
+            <div className="rounded-2xl border border-border-soft p-4 bg-surface-dim overflow-hidden">
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2 mb-4 min-w-0">
                 {weekDays.map((day, index) => (
                   <div
                     key={`${day}-${index}`}
@@ -180,13 +177,16 @@ export function Features() {
                 </button>
               </div>
 
-              <div
-                className="mt-3 h-4 w-4 rounded-full bg-accent"
-                style={{
-                  transform: `translateX(${Math.min(cursorStep, weekDays.length - 1) * 44}px) scale(${cursorStep > weekDays.length - 1 ? 0.95 : 1})`,
-                  transition: "transform 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-                }}
-              />
+              <div className="relative mt-3 h-4 w-full min-w-0">
+                <div
+                  className="absolute top-0 h-4 w-4 rounded-full bg-accent"
+                  style={{
+                    left: `${((Math.min(cursorStep, weekDays.length - 1) + 0.5) / 7) * 100}%`,
+                    transform: `translateX(-50%) scale(${cursorStep > weekDays.length - 1 ? 0.95 : 1})`,
+                    transition: "left 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 320ms cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                  }}
+                />
+              </div>
             </div>
           </article>
         </div>

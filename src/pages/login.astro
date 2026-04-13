@@ -1,0 +1,11 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import LoginPageContent from "@/components/auth/LoginPageContent";
+
+// Proteção básica: se já estiver logado, o middleware redirecionará.
+// Mas podemos reforçar aqui se necessário via Astro.locals.user.
+---
+
+<BaseLayout title="Login | Pacto Ágil">
+  <LoginPageContent client:load />
+</BaseLayout>
