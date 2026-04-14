@@ -245,7 +245,7 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground flex">
+    <div className="dashboard-shell min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground flex">
       <style dangerouslySetInnerHTML={{ __html: `
         :root {
           ${userProfile?.corPrimaria ? `
@@ -270,7 +270,7 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
 
       {/* Mobile Sidebar */}
       <aside 
-        className={`fixed inset-y-0 left-0 w-72 bg-surface/95 backdrop-blur-xl border-r border-border-soft flex flex-col z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+        className={`fixed inset-y-0 left-0 w-[85vw] max-w-[20rem] bg-surface/95 backdrop-blur-xl border-r border-border-soft flex flex-col z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -294,8 +294,8 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
           </button>
         </header>
 
-        <main className="flex-1 p-3 sm:p-4 md:p-8 lg:p-10 w-full min-w-0">
-          <div className="mx-auto w-full max-w-[1240px] h-full">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-7 xl:p-8 w-full min-w-0">
+          <div className="dashboard-content-scale mx-auto w-full max-w-[1180px] h-full">
             {children}
           </div>
         </main>

@@ -142,6 +142,16 @@
       inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
+  .dashboard-content-scale {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 1024px) {
+    .dashboard-content-scale {
+      font-size: 0.95rem;
+    }
+  }
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -167,7 +177,7 @@
 
   @media (min-width: 768px) {
     .section-shell {
-      border-radius: 2.5rem;
+      border-radius: 2rem;
     }
   }
 
