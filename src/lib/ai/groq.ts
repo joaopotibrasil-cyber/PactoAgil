@@ -41,5 +41,5 @@ export async function getGroqCompletion(
     max_tokens: 4096,
   });
 
-  return completion.choices[0].message.content || "";
+  return completion.choices[0]?.message.content || "";
 }

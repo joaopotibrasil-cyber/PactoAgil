@@ -61,14 +61,14 @@ export function Features() {
     let line = 0;
 
     while (true) {
-      const frame = feedLines[line].length + pauseChars;
+      const frame = feedLines[line]!.length + pauseChars;
       if (remaining < frame) break;
       remaining -= frame;
       line = (line + 1) % feedLines.length;
     }
 
-    const charCount = Math.min(remaining, feedLines[line].length);
-    return feedLines[line].slice(0, charCount);
+    const charCount = Math.min(remaining, feedLines[line]!.length);
+    return feedLines[line]!.slice(0, charCount);
   }, [feedTick]);
 
   const activeDay = useMemo(() => Math.min(cursorStep, weekDays.length - 1), [cursorStep]);

@@ -103,7 +103,8 @@ export function useAsyncStates<T extends Record<string, (...args: any[]) => Prom
       }));
 
       try {
-        const data = await operations[key](...args);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const data = await operations[key]!(...args);
         setStates((prev) => ({
           ...prev,
           [key]: { status: 'success' as const, data, error: null },

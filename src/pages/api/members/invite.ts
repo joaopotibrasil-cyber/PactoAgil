@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (inviteData?.properties?.action_link) {
       await EmailService.sendMemberInviteEmail(
         guestEmail.toLowerCase().trim(),
-        validatedName || guestEmail.split('@')[0],
+        validatedName || (guestEmail.split('@')[0] ?? guestEmail),
         adminPerfil.nomeCompleto || 'Um administrador',
         empresa.nome,
         inviteData.properties.action_link

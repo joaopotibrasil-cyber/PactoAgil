@@ -63,7 +63,7 @@ if (!import.meta.env.PROD) {
  * Proxied Prisma Client para segurança durante o build.
  */
 const prisma = new Proxy(client, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (prop === 'then') return undefined;
     return (client as any)[prop];
   }

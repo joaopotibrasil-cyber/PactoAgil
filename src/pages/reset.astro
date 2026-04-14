@@ -1,0 +1,117 @@
+---
+export const prerender = true;
+---
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset do Sistema - Pacto Ágil</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #020c1e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        .container {
+            max-width: 400px;
+            padding: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.02);
+        }
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #006fee;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h1 { margin-bottom: 0.5rem; font-size: 1.25rem; }
+        p { color: rgba(255,255,255,0.6); font-size: 0.9rem; margin-bottom: 0; }
+        .success { color: #10b981; margin-top: 1rem; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="loader" id="loader"></div>
+        <h1 id="title">Limpando Resíduos...</h1>
+        <p id="status">Iniciando reset profundo do navegador.</p>
+        <div class="success" id="success">Reinicialização concluída!</div>
+    </div>
+
+    <script>
+        async function runReset() {
+            const status = document.getElementById('status');
+            const title = document.getElementById('title');
+            const success = document.getElementById('success');
+            const loader = document.getElementById('loader');
+
+            if (!status || !title || !success || !loader) return;
+
+            try {
+                // 1. Limpar API de Cache
+                if ('caches' in window) {
+                    status.innerText = 'Limpando arquivos temporários...';
+                    const names = await caches.keys();
+                    await Promise.all(names.map(n => caches.delete(n)));
+                }
+
+                // 2. Limpar Service Workers
+                if ('serviceWorker' in navigator) {
+                    status.innerText = 'Removendo scripts de rede...';
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of regs) {
+                        await reg.unregister();
+                    }
+                }
+
+                // 3. Limpar Storages e Cookies
+                status.innerText = 'Limpando dados de sessão e cookies...';
+                localStorage.clear();
+                sessionStorage.clear();
+
+                // Limpeza agressiva de cookies via JS
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    if (!cookie) continue;
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+
+                status.innerText = 'Aguardando sincronização final...';
+                await new Promise(r => setTimeout(r, 1000));
+
+                title.innerText = 'Reset Completo!';
+                status.innerText = 'Seu navegador agora está limpo.';
+                success.style.display = 'block';
+                loader.style.display = 'none';
+
+                // Redirecionar para home com flag de bypass
+                setTimeout(() => {
+                    window.location.replace('/?system-reset=true&ts=' + Date.now());
+                }, 1500);
+
+            } catch (err) {
+                console.error('Reset failed:', err);
+                status.innerText = 'Erro ao limpar automática. Por favor, use Ctrl+F5.';
+            }
+        }
+
+        window.onload = runReset;
+    </script>
+</body>
+</html>

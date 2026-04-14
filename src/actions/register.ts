@@ -1,5 +1,5 @@
 import { defineAction } from 'astro:actions';
-import { z } from 'zod';
+import { z } from 'astro:schema';
 import { createSupabaseClient } from '../lib/supabase/astro';
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { ROUTES } from '../constants/routes';

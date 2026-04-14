@@ -2,12 +2,22 @@ import { defineMiddleware } from 'astro:middleware';
 import { createSupabaseClient } from './lib/supabase/astro';
 import { ROUTES } from './constants/routes';
 
-export const onRequest = defineMiddleware(async ({ locals, cookies, url, redirect }, next) => {
+export const onRequest = defineMiddleware(async (context, next) => {
+  const { locals, cookies, url, redirect } = context;
   const { pathname } = url;
 
   // ─── EMERGÊNCIA: EXPURGO NEXT.JS ───────────────────────────────────
-  // Se o browser pedir qualquer asset do Next.js, redirecionamos para limpeza.
-  // Isso resolve o problema de usuários com HTML antigo em cache.
+  // 1. Limpeza de cookies legados que podem causar conflitos
+  // Nunca limpar cookies do Supabase aqui; eles carregam a sessão autenticada atual.
+  // Limpeza restrita apenas a cookies legados do ecossistema NextAuth.
+  const legacyCookies = ['__session', 'next-auth.session-token', 'next-auth.callback-url', 'next-auth.state'];
+  legacyCookies.forEach(cookieName => {
+    if (cookies.has(cookieName)) {
+      cookies.delete(cookieName, { path: '/' });
+    }
+  });
+
+  // 2. Bloqueio de assets do Next.js
   if (pathname.includes('_next/')) {
     return new Response(
       `console.warn('Next.js legacy detected, purging cache...'); window.location.replace('/force-refresh.html?ts=' + Date.now());`,
@@ -33,6 +43,17 @@ export const onRequest = defineMiddleware(async ({ locals, cookies, url, redirec
     pathname.endsWith('.jpg') ||
     pathname.endsWith('.jpeg')
   ) {
+    return next();
+  }
+
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  const hasSupabaseEnv = Boolean(supabaseUrl && supabaseAnonKey);
+
+  // Em build/prerender local, as variáveis podem não existir.
+  // Nesses casos, segue sem sessão para evitar quebrar o build.
+  if (!hasSupabaseEnv) {
+    locals.user = null;
     return next();
   }
 

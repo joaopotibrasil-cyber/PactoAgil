@@ -69,47 +69,52 @@ const {
     
     <slot />
 
-    <!-- ChunkLoadError & SW Scripts -->
+    <!-- Sincronização e Limpeza de Cache (Definitivo) -->
     <script is:inline>
       (function() {
         if (!('serviceWorker' in navigator)) return;
 
-        // ─── 1. Detectar SW legado do Next.js ───────────────────────────
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          var hasNextSW = regs.some(function(r) {
-            var sw = r.active || r.installing || r.waiting;
-            return sw && sw.scriptURL && sw.scriptURL.indexOf('_next') !== -1;
-          });
-          if (hasNextSW) {
-            // SW do Next.js ainda ativo → limpeza obrigatória
-            window.location.replace('/force-refresh.html?ts=' + Date.now());
+        // Função para forçar refresh pesado
+        function forceSync() {
+          console.log('[Pacto] Resíduo do Next.js detectado. Iniciando reset profundo...');
+          window.location.replace('/reset?reason=legacy_detected&ts=' + Date.now());
+        }
+
+        // 1. Detectar sinalizadores do Next.js ativos na janela
+        if (window.__NEXT_DATA__ || window.next || document.getElementById('__NEXT_DATA__')) {
+            forceSync();
             return;
+        }
+
+        // 2. Detectar Service Workers antigos
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var reg of registrations) {
+            var sw = reg.active || reg.installing || reg.waiting;
+            if (sw && sw.scriptURL && (sw.scriptURL.indexOf('_next') !== -1 || sw.scriptURL.indexOf('next') !== -1)) {
+              forceSync();
+              return;
+            }
           }
 
-          // ─── 2. Registrar novo SW Astro ─────────────────────────────────
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
-            reg.addEventListener('updatefound', function() {
-              var nw = reg.installing;
-              if (nw) {
-                nw.addEventListener('statechange', function() {
-                  if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-                    window.location.reload();
-                  }
-                });
-              }
-            });
+          // Registrar nosso novo "limpador" (sw.js)
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function(reg) {
+            reg.update();
+          }).catch(function(err) {
+            console.error('[Pacto] Erro ao registrar limpador:', err);
           });
         });
 
-        // ─── 3. Detectar erros de chunk/MIME do Next.js ─────────────────
+        // 3. Capturar erros típicos de cache corrompido
         window.addEventListener('error', function(e) {
           var msg = e.message || '';
           var src = (e.filename || '');
-          var isNextError = src.indexOf('_next') !== -1 ||
-            msg.indexOf('ChunkLoadError') !== -1 ||
-            msg.indexOf('MIME') !== -1;
-          if (isNextError) {
-            window.location.replace('/force-refresh.html?ts=' + Date.now());
+          if (
+            src.indexOf('_next') !== -1 || 
+            msg.indexOf('ChunkLoadError') !== -1 || 
+            msg.indexOf('unexpected token <') !== -1 || 
+            msg.indexOf('MIME') !== -1
+          ) {
+            forceSync();
           }
         }, true);
       })();

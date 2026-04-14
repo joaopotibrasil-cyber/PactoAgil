@@ -1,13 +1,6 @@
 import { useState, useRef } from "react";
 import { Users, Shield, Mail, BadgeCheck, Zap, Info, UserPlus, X, Loader2, CheckCircle2, User2, AlertCircle } from "lucide-react";
 
-const PLAN_LIMITS = {
-  "DESCOBERTA": 2,
-  "MOVIMENTO": 3,
-  "DIRECAO": 7,
-  "LIDERANCA": 10,
-  "GRATIS": 2,
-} as const;
 
 const PLAN_NAMES: Record<string, string> = {
   "DESCOBERTA": "Descoberta",

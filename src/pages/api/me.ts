@@ -84,7 +84,8 @@ async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
   };
 }
 
-export const GET: APIRoute = async ({ request, cookies }) => {
+export const GET: APIRoute = async (context) => {
+  const { request, cookies } = context;
   try {
     const authHeader = request.headers.get('authorization');
     const token = extractBearerToken(authHeader);
@@ -130,10 +131,19 @@ export const GET: APIRoute = async ({ request, cookies }) => {
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error('[API /api/me] Erro crítico:', message);
+    console.error('[API /api/me] Erro durante processamento:', message);
+    
+    // Se o erro for relacionado à autenticação ou token, retornamos 401 de forma limpa
+    if (message.includes('auth') || message.includes('token') || message.includes('session')) {
+      return new Response(
+        JSON.stringify({ error: 'Sessão inválida ou expirada. Por favor, faça reset via /reset.' }),
+        { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Erro interno no servidor ao processar o perfil.' }),
-      { status: 500, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
+      JSON.stringify({ error: 'Erro ao validar perfil. Tente limpar o cache.' }),
+      { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
     );
   }
 };

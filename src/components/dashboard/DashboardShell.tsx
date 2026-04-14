@@ -1,4 +1,5 @@
-import { ReactNode, useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   Building2,
@@ -42,7 +43,7 @@ interface DashboardShellProps {
   children: ReactNode;
   currentPath: string;
   /** Dados do perfil já carregados no servidor (cor/logo sem esperar o cliente). */
-  initialShellProfile?: UserProfile | null;
+  initialShellProfile?: UserProfile | null | undefined;
 }
 
 export function DashboardShell({ children, currentPath, initialShellProfile = null }: DashboardShellProps) {
@@ -244,7 +245,7 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
   };
 
   return (
-    <div className="min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground flex flex-col sm:flex-row">
+    <div className="dashboard-shell min-h-screen min-h-[100dvh] w-full overflow-x-hidden bg-background text-foreground flex flex-col sm:flex-row">
       <style dangerouslySetInnerHTML={{ __html: `
         :root {
           ${userProfile?.corPrimaria ? `
@@ -270,8 +271,8 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
       )}
 
       {/* Mobile Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 w-full max-w-[288px] bg-surface/95 backdrop-blur-xl border-r border-border-soft flex flex-col z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
+      <aside 
+        className={`fixed inset-y-0 left-0 w-[85vw] max-w-[20rem] bg-surface/95 backdrop-blur-xl border-r border-border-soft flex flex-col z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -296,8 +297,8 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
           </button>
         </header>
 
-        <main className="flex-1 w-full min-w-0 p-3 sm:p-4 md:p-6 lg:p-8">
-          <div className="w-full h-full">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-7 xl:p-8 w-full min-w-0">
+          <div className="dashboard-content-scale mx-auto w-full max-w-[1180px] h-full">
             {children}
           </div>
         </main>

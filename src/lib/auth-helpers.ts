@@ -1,5 +1,4 @@
 import { createClient } from './supabase/server';
-import { createAdminClient } from './supabase/admin';
 import type { AstroCookies } from 'astro';
 
 /**

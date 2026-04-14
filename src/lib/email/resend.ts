@@ -18,7 +18,7 @@ export const getResendClient = () => {
  * Evita o erro de API Key ausente durante o build do Next.js.
  */
 export const resend = new Proxy({} as InstanceType<typeof Resend>, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     const client = getResendClient();
     return (Object.getOwnPropertyDescriptor(client, prop)?.value || (client as any)[prop]);
   }

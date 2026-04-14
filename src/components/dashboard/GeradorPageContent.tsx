@@ -190,7 +190,8 @@ export function GeradorPageContent() {
       let match;
       while ((match = clauseRegex.exec(result.value)) !== null) {
         const num = match[1];
-        const text = match[2].trim().substring(0, 200);
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const text = match[2]!.trim().substring(0, 200);
         fields.push({
           key: `clause-${num}`,
           label: `Cláusula ${num}`,
@@ -313,7 +314,8 @@ export function GeradorPageContent() {
     const target = index + direction;
     if (target < 0 || target >= categories.length) return;
     const next = [...categories];
-    [next[index], next[target]] = [next[target], next[index]];
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    [next[index], next[target]] = [next[target]!, next[index]!];
     setCategories(next);
   }
 

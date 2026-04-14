@@ -19,7 +19,7 @@ const getStripeClient = () => {
 let _stripe: Stripe | null = null;
 
 export const stripe = new Proxy({} as Stripe, {
-  get: (target, prop) => {
+  get: (_target, prop) => {
     if (!_stripe) _stripe = getStripeClient();
     return (Object.getOwnPropertyDescriptor(_stripe, prop)?.value || (_stripe as any)[prop]);
   }

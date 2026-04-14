@@ -39,8 +39,12 @@ export function RegisterPageContent({ planKey = "" }: RegisterPageContentProps) 
   useEffect(() => {
     const searchCompany = async () => {
       if (debouncedEmail.includes("@")) {
-        const domain = debouncedEmail.split("@")[1];
-        const domainName = domain.split(".")[0];
+        const parts = debouncedEmail.split("@");
+        const domain = parts[1];
+        if (!domain) return;
+        const domainParts = domain.split(".");
+        const domainName = domainParts[0];
+        if (!domainName) return;
         
         if (domainName.length > 2) {
           setIsSearching(true);

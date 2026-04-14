@@ -7,7 +7,6 @@
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const isDev = true; // Rodando localmente
 const stripeKey = 'sk_test_51THNYsKU2r3EjtChUhAh1EFF515GbRgYL0pmeOVN5ykIrjUWLfiu6ZHmdiVpIGsxZH0ZMIV5YkBakSMACPq5R4cK00vtR7MZ9C';
 
 const stripe = new Stripe(stripeKey, { apiVersion: '2025-01-27.acacia' as any });
@@ -38,7 +37,7 @@ async function main() {
   for (const sub of subscriptions.data) {
     const customer = sub.customer as Stripe.Customer;
     const priceId = sub.items.data[0]?.price.id;
-    const tipoPlano = testPriceMap[priceId] || 'DESCOBERTA';
+    const tipoPlano = (priceId ? testPriceMap[priceId] : undefined) || 'DESCOBERTA';
     const email = customer.email;
     const userId = sub.metadata?.userId;
 

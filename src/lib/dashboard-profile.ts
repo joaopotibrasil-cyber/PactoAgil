@@ -188,13 +188,24 @@ export async function getDashboardProfileJson(
 
 /** Props mínimas para o shell (tema + usuário) vindas do SSR. */
 export function shellProfileFromJson(json: DashboardProfileJson) {
-  return {
+  const profile: {
+    nomeCompleto: string;
+    email: string;
+    role: string;
+    empresaNome: string;
+    plano: string;
+    logoUrl?: string;
+    corPrimaria?: string;
+  } = {
     nomeCompleto: json.nomeCompleto,
     email: json.email,
     role: json.role,
     empresaNome: json.empresaNome,
     plano: json.plano,
-    logoUrl: json.logoUrl || undefined,
-    corPrimaria: json.corPrimaria || undefined,
   };
+
+  if (json.logoUrl) profile.logoUrl = json.logoUrl;
+  if (json.corPrimaria) profile.corPrimaria = json.corPrimaria;
+
+  return profile;
 }

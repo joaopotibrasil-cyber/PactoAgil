@@ -100,8 +100,11 @@ export function Protocol() {
       });
 
       for (let i = 1; i < cards.length; i += 1) {
+        const prevCard = cards[i - 1];
+        const currCard = cards[i];
+        if (!prevCard || !currCard) continue;
         tl.to(
-          cards[i - 1],
+          prevCard,
           {
             scale: 0.9,
             opacity: 0.5,
@@ -111,7 +114,7 @@ export function Protocol() {
           },
           i
         ).to(
-          cards[i],
+          currCard,
           {
             yPercent: 0,
             duration: 1,

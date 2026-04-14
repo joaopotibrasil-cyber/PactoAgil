@@ -91,9 +91,11 @@ export function CalendarioPageContent() {
     const grouped: Record<string, any[]> = {};
     negotiations.forEach(n => {
       if (!n.dataBase) return;
-      const dateKey = new Date(n.dataBase).toISOString().split('T')[0];
+      const isoDate = new Date(n.dataBase).toISOString();
+      const dateKey = isoDate.substring(0, 10);
       if (!grouped[dateKey]) grouped[dateKey] = [];
-      grouped[dateKey].push(n);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      grouped[dateKey]!.push(n);
     });
     return grouped;
   }, [negotiations]);

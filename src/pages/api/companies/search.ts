@@ -12,7 +12,7 @@ const supabase = createClient(
   import.meta.env.SUPABASE_SERVICE_ROLE_KEY! || import.meta.env.PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export const GET: APIRoute = async ({ request, url }) => {
+export const GET: APIRoute = async ({ url }) => {
   try {
     const query = url.searchParams.get('q');
 
