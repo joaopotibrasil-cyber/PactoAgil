@@ -5,6 +5,13 @@ import { ROUTES } from './constants/routes';
 export const onRequest = defineMiddleware(async ({ locals, cookies, url, redirect }, next) => {
   const { pathname } = url;
 
+  // ─── EMERGÊNCIA: EXPURGO NEXT.JS ───────────────────────────────────
+  // Se o browser pedir qualquer asset do Next.js, redirecionamos para limpeza.
+  // Isso resolve o problema de usuários com HTML antigo em cache.
+  if (pathname.includes('_next/')) {
+    return redirect('/force-refresh.html?ts=' + Date.now());
+  }
+
   // Ignorar assets e manifestos
   if (
     pathname.includes('favicon.ico') ||

@@ -26,6 +26,20 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-  // Deixa o Next.js gerenciar seus próprios chunks
+  const url = event.request.url;
+  
+  // Bloquear requisições para o diretório do Next.js
+  if (url.includes('_next/')) {
+    console.log('[SW] Bloqueando requisição legada do Next.js:', url);
+    event.respondWith(
+      new Response('Legacy Next.js asset blocked for cache purge', {
+        status: 410,
+        statusText: 'Gone'
+      })
+    );
+    return;
+  }
+
+  // Deixa o navegador processar as demais requisições normalmente
   return;
 });

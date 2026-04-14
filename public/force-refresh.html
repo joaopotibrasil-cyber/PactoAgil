@@ -38,11 +38,13 @@
 
     <script>
         async function clearEverything() {
+            const statusText = document.querySelector('p');
             console.log('[Pacto] Iniciando limpeza profunda de cache...');
             
             try {
                 // 1. Limpar Caches da API Cache
                 if ('caches' in window) {
+                    statusText.innerText = 'Limpando arquivos temporários...';
                     const cacheNames = await caches.keys();
                     await Promise.all(cacheNames.map(name => caches.delete(name)));
                     console.log('[Pacto] API de Cache limpa.');
@@ -50,22 +52,29 @@
 
                 // 2. Desregistrar Service Workers
                 if ('serviceWorker' in navigator) {
+                    statusText.innerText = 'Removendo scripts antigos...';
                     const registrations = await navigator.serviceWorker.getRegistrations();
-                    await Promise.all(registrations.map(reg => reg.unregister()));
-                    console.log('[Pacto] Service Workers desregistrados.');
+                    for (const reg of registrations) {
+                        await reg.unregister();
+                        console.log('[Pacto] SW desregistrado:', reg.scope);
+                    }
                 }
 
-                // 3. Limpar sessionStorage (LocalStorage mantemos para não deslogar se possível, 
-                // mas se houver erro persistente o usuário pode limpar manualmente)
+                // 3. Limpar storages
+                statusText.innerText = 'Reiniciando sessão...';
                 sessionStorage.clear();
+                // Opcional: localStorage.clear(); // Cuidado: remove preferências do usuário
                 
-                console.log('[Pacto] Limpeza concluída. Redirecionando...');
+                console.log('[Pacto] Limpeza concluída.');
             } catch (err) {
                 console.error('[Pacto] Erro durante a limpeza:', err);
             } finally {
-                // Redireciona para o login com flag de bypass de cache
-                const destination = '/login?refreshed=true&ts=' + Date.now();
-                window.location.href = destination;
+                statusText.innerText = 'Tudo pronto! Entrando no sistema...';
+                // Redireciona para o login com flag de bypass de cache agressivo
+                setTimeout(() => {
+                    const destination = '/login?refreshed=true&v=' + Date.now();
+                    window.location.replace(destination);
+                }, 500);
             }
         }
 
