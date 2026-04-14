@@ -1,16 +1,23 @@
 /**
  * Arquivo de entrada para a plataforma Hostinger (Node.js SSR)
- * Este arquivo é rastreado pelo Git para permitir a validação do formulário no hPanel.
- * Ele importa o entrypoint real gerado pelo Astro após o comando de build.
+ * Importa o entry gerado pelo Astro após `npm run build`.
  *
- * Nos logs de execução deve aparecer a linha abaixo — se vir "Next.js", o domínio
- * está ligado a OUTRA aplicação Node ou o comando de arranque não é este ficheiro.
+ * Usa caminho absoluto a partir deste ficheiro — alguns hosts mudam o CWD ao arrancar.
  */
-console.log("[PactoAgil] Arranque Astro SSR (@astrojs/node) — não é Next.js");
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// Importa dinamicamente para evitar erro se o arquivo ainda não existir durante pré-validações
-import('./dist/server/entry.mjs').catch((err) => {
-  console.error('Erro ao iniciar o servidor: Certifique-se de que "npm run build" foi executado com sucesso.');
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const entryPath = join(__dirname, 'dist', 'server', 'entry.mjs');
+const entryUrl = pathToFileURL(entryPath).href;
+
+console.log("[PactoAgil] Arranque Astro SSR (@astrojs/node) — não é Next.js");
+console.log("[PactoAgil] Entry:", entryPath);
+
+import(entryUrl).catch((err) => {
+  console.error(
+    '[PactoAgil] Falha ao carregar dist/server/entry.mjs. Corra "npm run build" nesta pasta e confirme que o diretório raiz no hPanel é ./',
+  );
   console.error(err);
   process.exit(1);
 });
