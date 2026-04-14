@@ -4,9 +4,15 @@ import tailwindcss from '@tailwindcss/vite';
 import node from '@astrojs/node';
 
 // https://astro.build/config
+// Hostinger (e a maioria dos hosts Node): usar standalone para o entry iniciar o HTTP.
+// middleware só exporta handler — exigiria Express/Fastify à parte.
 export default defineConfig({
+  server: {
+    // Escuta em todas as interfaces; necessário atrás do proxy reverso da hospedagem
+    host: true,
+  },
   integrations: [react()],
-  adapter: node({ mode: 'middleware' }),
+  adapter: node({ mode: 'standalone' }),
   vite: {
     plugins: [tailwindcss()],
     resolve: {
