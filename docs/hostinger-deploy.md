@@ -46,3 +46,10 @@ Se nos **logs em tempo real** aparecer `▲ Next.js` ou `Ready in …ms` típico
 4. Depois de corrigir, os logs devem mostrar **`[PactoAgil] Arranque Astro SSR`** (mensagem em `server.mjs`) e **não** o banner do Next.js.
 
 Cache de HTML não gera logs “Next.js” no servidor — isso é sempre **processo errado**.
+
+## `npm audit` / falha de deploy por vulnerabilidades
+
+- Corre **`npm audit fix`** (sem `--force`) localmente antes de commitar; **`npm audit fix --force`** pode instalar **Astro 6 / @astrojs/node 10** e exigir **Node ≥ 22**, incompatível com o plano atual em Node 20.
+- O projeto usa **`overrides`** para corrigir transitivas (Hono, `yaml`, etc.) e **`axios` ≥ 1.15.0** para o aviso **crítico**.
+- Pode restar **1 moderado** em `@astrojs/node` &lt; 10 ([GHSA-3rmj-9m5h-8fpv](https://github.com/advisories/GHSA-3rmj-9m5h-8fpv)); o patch oficial é a linha 10.x (Astro 6). Enquanto ficares em Astro 5 + Node 20, isso é aceite.
+- No **`.npmrc`** está `audit-level=critical` para que `npm audit` **não falhe só por moderados** (se a Hostinger respeitar o `.npmrc` do repositório no passo de audit).
