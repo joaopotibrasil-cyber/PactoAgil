@@ -57,7 +57,7 @@ async function verify() {
 
   try {
     console.log('🔑 Verificando Supabase (Variáveis de Ambiente)...');
-    if (process.env.PUBLIC_SUPABASE_URL && process.env.PUBLIC_SUPABASE_ANON_KEY) {
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       console.log('✅ Supabase configurado (URL e Anon Key presentes).');
       results.supabase = true;
     } else {

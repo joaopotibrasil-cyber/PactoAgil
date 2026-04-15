@@ -29,7 +29,7 @@ export function useAuthToken() {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (!error && session?.access_token) {
-        if (import.meta.env.DEV) {
+        if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthToken] Token obtido via Supabase SDK.', { preview: session.access_token.substring(0, 10) + '...' });
         }
         tokenRef.current = {
@@ -46,7 +46,7 @@ export function useAuthToken() {
       // 3. Fallback: LocalStorage (persiste mesmo se o SDK perder o estado)
       const storedToken = localStorage.getItem(AUTH_KEYS.ACCESS_TOKEN);
       if (storedToken && storedToken !== 'null' && storedToken !== 'undefined') {
-        if (import.meta.env.DEV) {
+        if (process.env.NODE_ENV === 'development') {
           console.log('[useAuthToken] Fallback: Token recuperado do LocalStorage.', { preview: storedToken.substring(0, 10) + '...' });
         }
         tokenRef.current = {
@@ -56,7 +56,7 @@ export function useAuthToken() {
         return storedToken;
       }
 
-      if (import.meta.env.DEV) {
+      if (process.env.NODE_ENV === 'development') {
         console.warn('[useAuthToken] Nenhum token encontrado em nenhuma camada.');
       }
       return null;

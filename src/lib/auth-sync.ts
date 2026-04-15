@@ -53,7 +53,6 @@ export async function syncUserSession(force = false): Promise<UserState | null> 
 
     const response = await fetch('/api/me', {
       method: 'GET',
-      credentials: 'include',
       headers,
     });
 

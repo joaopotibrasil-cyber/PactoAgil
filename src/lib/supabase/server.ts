@@ -1,33 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
-import type { AstroCookies } from 'astro'
+import { cookies } from 'next/headers'
 
-/**
- * Cliente Supabase para uso no Servidor (Astro).
- * Deve ser chamado passando Astro.cookies ou o objeto cookies do contexto da API/Middleware.
- * 
- * Exemplo em rota de API: const client = await createClient(Astro.cookies)
- */
-export async function createClient(cookieStore: AstroCookies) {
+export async function createClient() {
+  const cookieStore = await cookies()
+
   return createServerClient(
-    import.meta.env.PUBLIC_SUPABASE_URL!,
-    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          return cookieStore.getAll()
         },
-        set(name: string, value: string, options: Record<string, unknown>) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set(name, value, options)
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
           } catch {
-            // Em alguns contextos (como renderização estática) o set de cookies pode falhar.
-          }
-        },
-        remove(name: string, options: Record<string, unknown>) {
-          try {
-            cookieStore.delete(name, options)
-          } catch {
-            // Ignore em contextos onde escrita de cookie não está disponível.
+            // The `setAll` method was called from a Server Component.
+            // Ignored since middleware handles session refresh.
           }
         },
       },

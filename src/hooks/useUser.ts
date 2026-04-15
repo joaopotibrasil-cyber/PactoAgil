@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AUTH_KEYS, syncUserSession } from '@/lib/auth-sync';
-import type { UserState } from '@/lib/auth-sync';
+import { AUTH_KEYS, UserState, syncUserSession } from '@/lib/auth-sync';
 
 /**
  * Hook para acessar o estado do usuário e realizar sincronização.

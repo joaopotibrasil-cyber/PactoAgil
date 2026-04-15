@@ -4,7 +4,7 @@ let _resend: InstanceType<typeof Resend> | null = null;
 
 export const getResendClient = () => {
   if (!_resend) {
-    const apiKey = import.meta.env.RESEND_API_KEY || '';
+    const apiKey = process.env.RESEND_API_KEY || '';
     if (!apiKey) {
       console.warn('⚠️ RESEND_API_KEY não encontrada no ambiente.');
     }
@@ -18,7 +18,7 @@ export const getResendClient = () => {
  * Evita o erro de API Key ausente durante o build do Next.js.
  */
 export const resend = new Proxy({} as InstanceType<typeof Resend>, {
-  get: (_target, prop) => {
+  get: (target, prop) => {
     const client = getResendClient();
     return (Object.getOwnPropertyDescriptor(client, prop)?.value || (client as any)[prop]);
   }

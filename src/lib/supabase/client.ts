@@ -1,8 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
 
 export function createClient() {
-  const url = import.meta.env.PUBLIC_SUPABASE_URL;
-  const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Durante `next build`, algumas páginas podem ser prerenderizadas no Node
   // sem que o ambiente de build injete as variáveis. Não devemos crashar o build

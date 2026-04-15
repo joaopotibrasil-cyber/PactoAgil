@@ -1,10 +1,10 @@
 import Stripe from 'stripe';
 
 const getStripeClient = () => {
-  const isDev = import.meta.env.DEV;
+  const isDev = process.env.NODE_ENV === 'development';
   const key = isDev 
-    ? (import.meta.env.STRIPE_TEST_SECRET_KEY || '') 
-    : (import.meta.env.STRIPE_SECRET_KEY || '');
+    ? (process.env.STRIPE_TEST_SECRET_KEY || '') 
+    : (process.env.STRIPE_SECRET_KEY || '');
 
   if (!key) {
     console.warn('⚠️ STRIPE SECRET KEY não encontrada no ambiente.');
@@ -19,7 +19,7 @@ const getStripeClient = () => {
 let _stripe: Stripe | null = null;
 
 export const stripe = new Proxy({} as Stripe, {
-  get: (_target, prop) => {
+  get: (target, prop) => {
     if (!_stripe) _stripe = getStripeClient();
     return (Object.getOwnPropertyDescriptor(_stripe, prop)?.value || (_stripe as any)[prop]);
   }

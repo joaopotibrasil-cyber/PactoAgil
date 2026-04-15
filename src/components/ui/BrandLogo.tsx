@@ -1,3 +1,6 @@
+import Image from "next/image";
+import Link from "next/link";
+
 export function BrandLogo({
   compact = false,
   href,
@@ -13,11 +16,12 @@ export function BrandLogo({
 }) {
   const content = (
     <span className={`inline-flex items-center ${className}`.trim()}>
-      <img
+      <Image
         src={src || "/logo-pacto-agil-new.png"}
         alt="Pacto Agil"
         width={compact ? 42 : 200}
         height={compact ? 42 : 56}
+        priority
         className={`object-contain transition-all duration-500 ${imageClassName}`.trim()}
         style={{ height: "auto" }}
       />
@@ -29,9 +33,8 @@ export function BrandLogo({
   }
 
   return (
-    <a href={href} className="hover-lift">
+    <Link href={href} className="hover-lift">
       {content}
-    </a>
+    </Link>
   );
 }
-
