@@ -8,14 +8,28 @@ const searchSchema = z.string().min(2).max(100).regex(/^[\p{L}\p{N}\s\-\.]+$/u);
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Inicializando Supabase nativamente para bypassar o compilador do Prima em Edge
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Evita crash em build/boot quando o ambiente não injeta vars.
+  if (!url || !key) return null;
+
+  // Inicializando Supabase nativamente para bypassar o compilador do Prisma em Edge
+  return createClient(url, key);
+}
 
 export async function GET(req: Request) {
   try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Missing Supabase environment variables' },
+        { status: 500 }
+      );
+    }
+
     // Rate limiting por IP (usando headers)
     const ip = req.headers.get('x-forwarded-for') || 'unknown';
     const rateLimitResult = rateLimit(`api:${ip}`, RATE_LIMITS.api);

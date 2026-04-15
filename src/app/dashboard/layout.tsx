@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard,
   Building2,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { ROUTES } from "@/constants/routes";
+import { FullPageLoading } from "@/components/ui/FullPageLoading";
 
 
 const navItems = [
@@ -45,11 +47,41 @@ interface UserProfile {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const prefersReducedMotion = useReducedMotion();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  // Se a navegação for instantânea, a sensação ainda pode ser "corte seco".
+  // Esse overlay curto dá feedback de transição e combina com o `loading.tsx`
+  // (que aparece quando há trabalho real de carregamento).
+  useEffect(() => {
+    if (!isRouteLoading) return;
+    const t = setTimeout(() => setIsRouteLoading(false), 700);
+    return () => clearTimeout(t);
+  }, [isRouteLoading]);
+
+  useEffect(() => {
+    // Quando o pathname muda, encerramos rapidamente o loading.
+    if (!isRouteLoading) return;
+    const t = setTimeout(() => setIsRouteLoading(false), 250);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  const pageTransition = useMemo(() => {
+    if (prefersReducedMotion) {
+      return { initial: { opacity: 1 }, animate: { opacity: 1 }, exit: { opacity: 1 } };
+    }
+    return {
+      initial: { opacity: 0, y: 8, filter: "blur(6px)" },
+      animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+      exit: { opacity: 0, y: -8, filter: "blur(6px)" },
+    };
+  }, [prefersReducedMotion]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -205,7 +237,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => {
+                  setIsRouteLoading(true);
+                  setIsMobileMenuOpen(false);
+                }}
                 title={collapsed ? item.label : undefined}
                 className={`flex items-center ${collapsed ? 'justify-center px-0' : 'gap-3 px-4'} rounded-xl py-3 text-sm font-semibold hover-lift transition-all duration-200 ${
                   isActive
@@ -243,6 +278,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           <Link
             href={ROUTES.PAGES.AUTH.SIGNOUT}
+            onClick={() => setIsRouteLoading(true)}
             title={collapsed ? "Sair" : undefined}
             className={`w-full inline-flex items-center justify-center ${collapsed ? 'gap-0 p-2.5' : 'gap-2 py-2.5'} rounded-xl bg-surface border border-border-soft text-sm font-semibold hover:bg-surface-dim transition-colors`}
           >
@@ -266,6 +302,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           ` : ""}
         }
       `}} />
+      <FullPageLoading show={isRouteLoading} message="Carregando página..." />
       {/* Desktop Sidebar */}
       <aside className={`hidden lg:flex transition-all duration-300 ease-in-out border-r border-border-soft bg-surface/90 backdrop-blur-xl flex-col sticky top-0 h-screen z-30 ${isSidebarCollapsed ? 'w-24' : 'w-72'}`}>
         <SidebarContent collapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
@@ -308,7 +345,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         <main className="flex-1 p-4 md:p-8 lg:p-10">
           <div className="mx-auto w-[min(1240px,100%)] h-full">
-            {children}
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={pathname}
+                initial={pageTransition.initial}
+                animate={pageTransition.animate}
+                exit={pageTransition.exit}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>

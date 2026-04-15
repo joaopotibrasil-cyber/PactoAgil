@@ -28,7 +28,8 @@ const prismaClientSingleton = () => {
 
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    // Evita logar queries (muito barulho em produção/hosting). Mantemos warn/error.
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 }
 

@@ -8,7 +8,6 @@ import { AUTH_KEYS } from '@/lib/auth-sync';
  */
 export function useAuthToken() {
   const tokenRef = useRef<{ value: string; expiresAt: number } | null>(null);
-  const supabase = createClient();
 
   const getToken = useCallback(async (): Promise<string | null> => {
     const now = Date.now();
@@ -19,6 +18,13 @@ export function useAuthToken() {
     }
 
     try {
+      // O Supabase Browser Client só deve ser instanciado no browser.
+      if (typeof window === 'undefined') {
+        return null;
+      }
+
+      const supabase = createClient();
+
       // 2. Tentar obter via Supabase SDK (ideal: gerencia refresh)
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -58,7 +64,7 @@ export function useAuthToken() {
       console.error('[useAuthToken] Erro inesperado capturando token:', err);
       return null;
     }
-  }, [supabase]);
+  }, []);
 
   /**
    * Retorna os headers de autenticação prontos para uso em fetch()
