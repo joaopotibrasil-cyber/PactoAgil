@@ -52,9 +52,11 @@ export async function requireAuth(request?: NextRequest | Request): Promise<stri
       : request ? new Headers(request.headers) : null;
 
     const userIdHeader = headers?.get('x-user-id');
+    console.log(`[requireAuth] Path: ${request instanceof NextRequest ? request.nextUrl.pathname : 'unknown'}, x-user-id header: ${userIdHeader}`);
 
     // 3. Header de ID Real (injetado pelo middleware para sessões autênticas)
     if (userIdHeader && userIdHeader !== 'test-bypass-active') {
+      console.log(`[requireAuth] Autenticado via header: ${userIdHeader}`);
       return userIdHeader;
     }
 
