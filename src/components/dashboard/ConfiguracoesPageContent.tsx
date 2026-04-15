@@ -6,6 +6,7 @@ import { Building2, CreditCard, Palette, ShieldCheck, Users, Loader2, Check } fr
 import { createClient } from "@/lib/supabase/client";
 import { ROUTES } from "@/constants/routes";
 import { syncUserSession } from "@/lib/auth-sync";
+import { profileService } from "@/services/profileService";
 
 type Tab = "entidade" | "marca" | "usuarios" | "plano";
 
@@ -43,6 +44,7 @@ interface ProfileData {
   membros: Array<{ id: string; nomeCompleto: string; email: string; role: string }>;
 }
 
+
 export function ConfiguracoesPageContent() {
   const [activeTab, setActiveTab] = useState<Tab>("entidade");
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -59,13 +61,7 @@ export function ConfiguracoesPageContent() {
 
   const fetchProfile = useCallback(async () => {
     try {
-      const res = await fetch(ROUTES.API.PROFILE.ROOT);
-      if (res.status === 401) {
-        window.location.href = ROUTES.PAGES.AUTH.LOGIN;
-        return;
-      }
-
-      const data = await res.json();
+      const data: any = await profileService.get();
       if (!data.perfil) return;
 
       const profileData: ProfileData = {
@@ -90,8 +86,11 @@ export function ConfiguracoesPageContent() {
       setEndereco(profileData.empresa.funcionalidade);
       setLogoUrl(profileData.empresa.logoUrl || null);
       setCorPrimaria(profileData.empresa.corPrimaria || "#006fee");
-    } catch (err) {
-      console.error("[Configurações] Erro ao buscar perfil:", err);
+    } catch (err: any) {
+      console.error("[Configurações] Erro ao buscar perfil:", err.message);
+      if (err.message.includes("401")) {
+        window.location.href = ROUTES.PAGES.AUTH.LOGIN;
+      }
     } finally {
       setLoading(false);
     }
@@ -104,13 +103,12 @@ export function ConfiguracoesPageContent() {
     setSaving(true);
     setSaved(false);
     try {
-      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ razaoSocial, cnpj, funcionalidade: endereco }),
+      await profileService.update({ 
+        // @ts-ignore
+        razaoSocial, 
+        cnpj, 
+        funcionalidade: endereco 
       });
-
-      if (!res.ok) throw new Error("Erro ao salvar");
 
       await syncUserSession(true);
       window.dispatchEvent(new CustomEvent('profile-updated'));
@@ -145,13 +143,10 @@ export function ConfiguracoesPageContent() {
         .from('branding')
         .getPublicUrl(filePath);
 
-      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ logoUrl: publicUrl }),
+      await profileService.update({ 
+        // @ts-ignore
+        logoUrl: publicUrl 
       });
-
-      if (!res.ok) throw new Error("Erro ao registrar logo");
 
       await syncUserSession(true);
       window.dispatchEvent(new CustomEvent('profile-updated'));
@@ -172,13 +167,10 @@ export function ConfiguracoesPageContent() {
     setSaving(true);
     setSaved(false);
     try {
-      const res = await fetch(ROUTES.API.PROFILE.UPDATE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ corPrimaria }),
+      await profileService.update({ 
+        // @ts-ignore
+        corPrimaria 
       });
-
-      if (!res.ok) throw new Error("Erro ao salvar marca");
 
       await syncUserSession(true);
       window.dispatchEvent(new CustomEvent('profile-updated'));
@@ -194,12 +186,17 @@ export function ConfiguracoesPageContent() {
 
   const handlePortal = async () => {
     try {
-      const res = await fetch(ROUTES.API.PORTAL, { method: "POST" });
-      if (res.status === 401) { window.location.href = ROUTES.PAGES.AUTH.LOGIN; return; }
-      if (res.status === 400) { alert("Nenhuma assinatura ativa."); return; }
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch { alert("Erro ao acessar portal."); }
+      const { url } = await profileService.getPortalUrl();
+      if (url) window.location.href = url;
+    } catch (err: any) { 
+      if (err.message.includes("401")) { 
+        window.location.href = ROUTES.PAGES.AUTH.LOGIN; 
+      } else if (err.message.includes("400")) {
+        alert("Nenhuma assinatura ativa.");
+      } else {
+        alert("Erro ao acessar portal."); 
+      }
+    }
   };
 
   if (loading) {

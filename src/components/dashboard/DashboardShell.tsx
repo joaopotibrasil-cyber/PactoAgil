@@ -46,6 +46,8 @@ interface DashboardShellProps {
   initialShellProfile?: UserProfile | null | undefined;
 }
 
+import { profileService } from "@/services/profileService";
+
 export function DashboardShell({ children, currentPath, initialShellProfile = null }: DashboardShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -56,21 +58,18 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch(ROUTES.API.PROFILE.ROOT, { credentials: 'include' });
-        if (!res.ok) return;
-
-        const data = await res.json();
+        const data: any = await profileService.get();
         setUserProfile({
-          nomeCompleto: data.nomeCompleto,
-          email: data.email,
-          role: data.role,
-          empresaNome: data.empresaNome,
-          plano: data.plano,
-          logoUrl: data.logoUrl || undefined,
-          corPrimaria: data.corPrimaria || undefined,
+          nomeCompleto: data.perfil?.nomeCompleto || data.nomeCompleto,
+          email: data.perfil?.email || data.email,
+          role: data.perfil?.role || data.role,
+          empresaNome: data.empresa?.nome || data.empresaNome,
+          plano: data.assinatura?.tipoPlano || data.plano,
+          logoUrl: data.empresa?.logoUrl || data.logoUrl || undefined,
+          corPrimaria: data.empresa?.corPrimaria || data.corPrimaria || undefined,
         });
-      } catch (err) {
-        console.error('[DashboardShell] Erro ao buscar perfil:', err);
+      } catch (err: any) {
+        console.error('[DashboardShell] Erro ao buscar perfil:', err.message);
       }
     };
 
@@ -92,28 +91,19 @@ export function DashboardShell({ children, currentPath, initialShellProfile = nu
     const handlePortal = async () => {
       try {
         setIsPortalLoading(true);
-        const response = await fetch(ROUTES.API.PORTAL, { 
-          method: "POST",
-          credentials: "include",
-        });
-        
-        if (response.status === 401) {
+        const { url } = await profileService.getPortalUrl();
+        if (url) {
+          window.location.href = url;
+        }
+      } catch (error: any) {
+        if (error.message.includes("401")) {
           window.location.href = ROUTES.PAGES.AUTH.LOGIN;
           return;
         }
-        
-        if (response.status === 400) {
+        if (error.message.includes("400")) {
           alert("Nenhuma assinatura ativa encontrada. Complete o checkout primeiro.");
           return;
         }
-
-        const data = await response.json();
-        if (data.url) {
-          window.location.href = data.url;
-        } else {
-          throw new Error("URL do portal não encontrada");
-        }
-      } catch (error) {
         console.error(error);
         alert("Erro ao acessar o portal de faturamento.");
       } finally {

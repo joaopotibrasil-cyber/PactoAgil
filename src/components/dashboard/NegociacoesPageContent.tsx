@@ -11,6 +11,7 @@ import {
   Layers
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
+import { negotiationService, type Negotiation } from "@/services/negotiationService";
 
 const statusLabel: Record<string, string> = {
   RASCUNHO: "Rascunho",
@@ -27,7 +28,7 @@ const statusStyles: Record<string, string> = {
 };
 
 export function NegociacoesPageContent() {
-  const [negotiations, setNegotiations] = useState<any[]>([]);
+  const [negotiations, setNegotiations] = useState<Negotiation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filtro, setFiltro] = useState("total");
@@ -44,15 +45,10 @@ export function NegociacoesPageContent() {
   const fetchNegotiations = async () => {
     try {
       setLoading(true);
-      const res = await fetch(ROUTES.API.NEGOTIATIONS, { 
-        credentials: 'include' 
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNegotiations(data);
-      }
-    } catch (err) {
-      console.error("Erro ao buscar negociações:", err);
+      const data = await negotiationService.list();
+      setNegotiations(data);
+    } catch (err: any) {
+      console.error("Erro ao buscar negociações:", err.message);
     } finally {
       setLoading(false);
     }
@@ -62,15 +58,11 @@ export function NegociacoesPageContent() {
     if (!confirm("Tem certeza que deseja excluir esta negociação?")) return;
     
     try {
-      const res = await fetch(`${ROUTES.API.NEGOTIATIONS}?id=${id}`, {
-        method: "DELETE",
-        credentials: 'include'
-      });
-      if (res.ok) {
-        setNegotiations(negotiations.filter(n => n.id !== id));
-      }
-    } catch (err) {
-      console.error("Erro ao deletar:", err);
+      await negotiationService.delete(id);
+      setNegotiations(negotiations.filter(n => n.id !== id));
+    } catch (err: any) {
+      console.error("Erro ao deletar:", err.message);
+      alert("Não foi possível excluir a negociação.");
     }
   };
 

@@ -1,15 +1,20 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = import.meta.env.DATABASE_URL;
   
-  return new PrismaClient({
-    datasources: {
-      db: {
-        url: connectionString
-      }
-    },
-    log: ['error', 'warn'],
+  if (!connectionString) {
+    console.error('[Prisma] DATABASE_URL não encontrada no ambiente.');
+  }
+
+  const pool = new pg.Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
+
+  return new PrismaClient({ 
+    adapter,
+    log: ['error', 'warn'] 
   });
 }
 
@@ -27,17 +32,14 @@ const prisma = new Proxy(client, {
   get(target, prop) {
     if (prop === 'then') return undefined;
     
-    const value = target[prop];
+    const value = target[prop as keyof typeof target];
     
     if (typeof value === 'function') {
       return async (...args: any[]) => {
         try {
-          return await value.apply(target, args);
+          return await (value as Function).apply(target, args);
         } catch (error: any) {
           console.error('[Prisma Error]', error.message);
-          if (process.env.NODE_ENV === 'production') {
-            console.error('[Prisma] Check DATABASE_URL and database connectivity');
-          }
           throw error;
         }
       };

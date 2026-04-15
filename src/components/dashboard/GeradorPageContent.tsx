@@ -26,8 +26,9 @@ import {
   Save,
 } from "lucide-react";
 import { useAsyncStates } from "@/lib/hooks";
-import { useAuthToken } from "@/hooks/useAuthToken";
 import { ROUTES } from "@/constants/routes";
+import { negotiationService } from "@/services/negotiationService";
+import { aiService } from "@/services/aiService";
 
 type ScenarioKey = "empresa" | "sindicato" | "zero" | "aditivo";
 
@@ -92,91 +93,73 @@ export function GeradorPageContent() {
   const [editingField, setEditingField] = useState<ExtractedField | null>(null);
   const [documentTitle, setDocumentTitle] = useState("Nova Negociação");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { getAuthHeaders } = useAuthToken();
 
   const { states, execute } = useAsyncStates({
     load: async (id: string) => {
-      const authHeaders = await getAuthHeaders();
-      const res = await fetch(`${ROUTES.API.NEGOTIATIONS}?id=${id}`, {
-        headers: authHeaders
-      });
-
-      if (!res.ok) throw new Error("Erro ao carregar");
-      const data = await res.json();
-      setNegotiationId(data.id);
-      setScenario("empresa");
-      setExtractedFields(data.clausulas || []);
-      setDraftContent(data.minuta || "");
-      if (data.titulo) setDocumentTitle(data.titulo);
-      return data;
+      try {
+        const data = await negotiationService.get(id);
+        setNegotiationId(data.id);
+        setScenario("empresa");
+        // @ts-ignore
+        setExtractedFields(data.clausulas || []);
+        // @ts-ignore
+        setDraftContent(data.minuta || "");
+        if (data.titulo) setDocumentTitle(data.titulo);
+        return data;
+      } catch (err: any) {
+        console.error("Erro ao carregar:", err.message);
+        throw err;
+      }
     },
     analyze: async (content: string) => {
       if (!content) return;
-      const authHeaders = await getAuthHeaders();
-
-      const response = await fetch(ROUTES.API.AI.ANALYZE, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...authHeaders
-        },
-        body: JSON.stringify({ documentContent: content, scenario }),
-      });
-
-      const data = await response.json();
-      if (data.fields) {
-        setExtractedFields(data.fields.map((f: any) => ({ 
-          ...f, 
-          selected: true, 
-          confidence: Math.random() * 0.2 + 0.8 
-        })));
+      try {
+        const data = await aiService.analyze(content, { scenario });
+        if (data.analysis?.fields) {
+          setExtractedFields(data.analysis.fields.map((f: any) => ({ 
+            ...f, 
+            selected: true, 
+            confidence: Math.random() * 0.2 + 0.8 
+          })));
+        }
+        return data;
+      } catch (err: any) {
+        console.error("Erro na análise IA:", err.message);
+        throw err;
       }
-      return data;
     },
     generate: async () => {
-      const authHeaders = await getAuthHeaders();
-
-      const response = await fetch(ROUTES.API.AI.GENERATE, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...authHeaders
-        },
-        body: JSON.stringify({
+      try {
+        const data = await aiService.generate(draftContent, {
           scenario,
           categories,
           fields: extractedFields.filter((f) => f.selected),
-          documentContent: draftContent,
-        }),
-      });
-      const data = await response.json();
-      if (data.text) setDraftContent(data.text);
-      if (data.error) throw new Error(data.error);
-      return data;
+        });
+        if (data.result) setDraftContent(data.result);
+        return data;
+      } catch (err: any) {
+        console.error("Erro na geração IA:", err.message);
+        throw err;
+      }
     },
     save: async () => {
-      const authHeaders = await getAuthHeaders();
-
-      const response = await fetch(ROUTES.API.NEGOTIATIONS, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          ...authHeaders
-        },
-        body: JSON.stringify({
-          id: negotiationId,
+      try {
+        const data = await negotiationService.save(negotiationId, {
           titulo: documentTitle || "Nova Negociação",
+          // @ts-ignore
           clausulas: extractedFields,
           minuta: draftContent,
           status: "RASCUNHO",
           instrumento: "ACT/CCT",
-        }),
-      });
-      if (!response.ok) throw new Error("Erro ao salvar");
-      const data = await response.json();
-      setNegotiationId(data.id);
-      alert(negotiationId ? "Negociação atualizada com sucesso!" : "Negociação salva com sucesso!");
-      return data;
+        });
+        setNegotiationId(data.id);
+        alert(negotiationId ? "Negociação atualizada com sucesso!" : "Negociação salva com sucesso!");
+        return data;
+      } catch (err: any) {
+        console.error("Erro ao salvar:", err.message);
+        alert("Não foi possível salvar o progresso.");
+        throw err;
+      }
     },
     import: async (file: File) => {
       const mammoth = await import("mammoth");

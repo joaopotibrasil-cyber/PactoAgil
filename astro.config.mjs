@@ -15,6 +15,9 @@ export default defineConfig({
   adapter: node({ mode: 'standalone' }),
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      external: ['@prisma/client'],
+    },
     resolve: {
       alias: {
         '@': '/src',
