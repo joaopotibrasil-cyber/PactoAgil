@@ -14,45 +14,38 @@ A estética do Pacto Ágil foi construída sobre os pilares da sofisticação e 
 
 ## 🛠️ Stack Tecnológica
 
-- **Frontend:** [Next.js](https://nextjs.org/) (App Router, Server Components).
-- **Backend:** [Node.js](https://nodejs.org/) & Next.js API Routes.
+- **Framework:** [Next.js 15](https://nextjs.org/) (App Router, Server Components).
+- **Estilização:** [Tailwind CSS 4](https://tailwindcss.com/).
 - **Banco de Dados:** [PostgreSQL](https://www.postgresql.org/) (via [Supabase](https://supabase.com/)).
-- **ORM:** [Prisma](https://www.prisma.io/).
-- **Autenticação:** [Supabase Auth](https://supabase.com/auth).
-- **Pagamentos:** [Stripe](https://stripe.com/) (Checkout, Assinaturas e Webhooks).
-- **E-mails Transacionais:** [Resend](https://resend.com/) com templates premium em React.
-- **Inteligência Artificial:** [Groq AI](https://groq.com/) (Integração com Llama 3 para análise de cláusulas).
+- **ORM:** [Prisma 7](https://www.prisma.io/).
+- **Autenticação:** [Supabase Auth](https://supabase.com/auth) (via `@supabase/ssr`).
+- **Pagamentos:** [Stripe](https://stripe.com/) (Checkout e Billing Portal).
+- **IA:** [Groq AI](https://groq.com/) & [Google Generative AI](https://ai.google.dev/).
 
 ---
 
 ## 🏗️ Funcionalidades Principais
 
-1.  **Onboarding B2B Completo:** Fluxo fluido de registro de empresa, checkout de planos e ativação instantânea.
-2.  **Gestão de Membros:** Sistema de convites personalizados por e-mail com controle de limites por plano.
-3.  **Planos de Assinatura:**
-    - **Descoberta:** Essencial para pequenas operações.
-    - **Movimento:** Gestão ativa de negociações.
-    - **Direção:** Estratégico com insights avançados.
-    - **Liderança:** Full-access para grandes corporações.
-4.  **Segurança de Dados:** Protocolos rigorosos de RLS (Row Level Security) e isolamento multi-tenant via Prisma.
-5.  **Dashboard Estratégico:** Visão consolidada de todas as negociações em curso.
+1.  **Onboarding B2B:** Registro de empresa e checkout integrado.
+2.  **Gestão de Membros:** Controle de acesso e convites para diretores/gestores.
+3.  **Análise de Cláusulas:** Inteligência artificial para agilizar ACTs e CCTs.
+4.  **Dashboard Midnight Luxe:** Interface premium com foco em produtividade.
 
 ---
 
 ## 🚀 Como Iniciar
 
 ### Pré-requisitos
-- Node.js (v18+)
-- Conta no Supabase (Banco de Dados e Auth)
-- Conta no Stripe (Pagamentos)
-- API Key do Resend e Groq
+- Node.js (**v20.19.0+**)
+- NPM (**v10+**)
+- Supabase, Stripe, Resend e Groq API Keys.
 
 ### Instalação
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/Popilynx/PactoAgil.git
-    cd PactoAgil/app
+    git clone https://github.com/joaopotibrasil-cyber/PactoAgil.git
+    cd PactoAgil
     ```
 
 2.  **Instale as dependências:**
@@ -61,21 +54,11 @@ A estética do Pacto Ágil foi construída sobre os pilares da sofisticação e 
     ```
 
 3.  **Configure as variáveis de ambiente:**
-    Crie um arquivo `.env` na raiz da pasta `app` com as seguintes chaves (veja o `.env.example` para referência):
-    ```env
-    DATABASE_URL=
-    NEXT_PUBLIC_SUPABASE_URL=
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=
-    SUPABASE_SERVICE_ROLE_KEY=
-    STRIPE_SECRET_KEY=
-    RESEND_API_KEY=
-    GROQ_API_KEY=
-    ```
+    Crie um arquivo `.env` na raiz com as chaves necessárias (DATABASE_URL, SUPABASE, STRIPE, etc).
 
 4.  **Prepare o Banco de Dados:**
     ```bash
     npx prisma generate
-    npx prisma db push
     ```
 
 5.  **Inicie o servidor de desenvolvimento:**
@@ -85,17 +68,18 @@ A estética do Pacto Ágil foi construída sobre os pilares da sofisticação e 
 
 ---
 
-## 📦 Scripts Disponíveis
+## 📦 Scripts e Deploy (Hostinger)
 
-- `npm run dev`: Inicia o ambiente de desenvolvimento.
-- `npm run build`: Prepara a aplicação para produção (inclui geração do Prisma Client).
-- `npm run start`: Inicia o servidor de produção.
-- `npm run lint`: Verifica a qualidade do código com ESLint.
+A aplicação está otimizada para rodar em ambientes Node.js como o da **Hostinger**:
+
+- `npm run build`: Gera o build otimizado do Next.js e o cliente Prisma.
+- `npm run start`: Inicia o servidor Next.js em produção.
+- **Node Version**: Certifique-se de configurar o Node.js v20.19 ou superior no painel da Hostinger para garantir compatibilidade.
 
 ---
 
 ## 📄 Licença
-Propriedade privada de **Popilynx / Pacto Ágil**. Todos os direitos reservados.
+Propriedade privada de **Pacto Ágil**. Todos os direitos reservados.
 
 ---
 *Desenvolvido com ⚡ e precisão estratégica para o futuro das relações de trabalho.*
